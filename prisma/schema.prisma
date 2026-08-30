@@ -32,9 +32,24 @@ model Vendor {
   updatedAt    DateTime @updatedAt
   photos       Photo[]
   reviews      Review[]
+  products     Product[]
 
   @@index([city])
   @@index([category])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       String?
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vendorId])
 }
 
 model Photo {
