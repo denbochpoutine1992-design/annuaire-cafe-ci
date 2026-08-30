@@ -8,6 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     include: {
       photos: { orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
+      products: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!vendor) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
