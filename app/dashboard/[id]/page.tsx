@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import VendorFormFields, { emptyVendorForm, VendorFormState } from "@/components/VendorFormFields";
 import PhotoUploader from "@/components/PhotoUploader";
+import ProductManager from "@/components/ProductManager";
 
 export default function EditVendorPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function EditVendorPage() {
 
   const [form, setForm] = useState<VendorFormState>(emptyVendorForm());
   const [photos, setPhotos] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +35,7 @@ export default function EditVendorPage() {
           longitude: v.longitude,
         });
         setPhotos(v.photos || []);
+        setProducts(v.products || []);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -125,6 +128,15 @@ export default function EditVendorPage() {
             </button>
           </div>
         </form>
+
+        <div className="mt-12 pt-8" style={{ borderTop: "1px dashed #DCC79E" }}>
+          <h2 className="font-display font-semibold text-xl">Mes articles</h2>
+          <p className="text-sm mt-1 mb-4" style={{ color: "#8A7355" }}>
+            Ajoutez les produits que vous vendez (café moulu, capsules, grains...). Ils
+            s'afficheront sur votre fiche publique.
+          </p>
+          <ProductManager vendorId={id} products={products} onChange={setProducts} />
+        </div>
       </main>
     </div>
   );
