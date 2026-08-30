@@ -9,6 +9,12 @@ import { catLabel } from "@/lib/constants";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
+function waLink(phone: string) {
+  const digits = phone.replace(/[^\d]/g, "");
+  const withCountry = digits.startsWith("225") ? digits : `225${digits.replace(/^0+/, "")}`;
+  return `https://wa.me/${withCountry}`;
+}
+
 export default function VendorDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -85,9 +91,18 @@ export default function VendorDetailPage() {
           <p className="mt-5 leading-relaxed" style={{ color: "#5A4633" }}>{vendor.description}</p>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-4 font-mono text-sm">
+        <div className="mt-5 flex flex-wrap gap-3 font-mono text-sm">
           <a href={`tel:${vendor.phone}`} className="stitch px-4 py-2" style={{ color: "#2B1B14" }}>
-            📞 {vendor.phone}
+            📞 Appeler
+          </a>
+          
+            href={waLink(vendor.phone)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary px-4 py-2 rounded-full"
+            style={{ borderRadius: "10px" }}
+          >
+            💬 WhatsApp
           </a>
           {vendor.priceInfo && (
             <span className="stitch px-4 py-2" style={{ color: "#B85C38" }}>{vendor.priceInfo}</span>
@@ -100,6 +115,44 @@ export default function VendorDetailPage() {
               <img key={p.id} src={p.url} alt={vendor.name} className="w-full h-32 object-cover rounded-md" style={{ border: "1px solid #DCC79E" }} />
             ))}
           </div>
+        )}
+
+        {vendor.products?.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-display font-semibold text-xl">Nos articles</h2>
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {vendor.products.map((p: any) => (
+                <div key={p.id} className="vendor-card stitch p-3">
+                  {p.photoUrl ? (
+                    <img
+                      src={p.photoUrl}
+                      alt={p.name}
+                      className="w-full h-24 object-cover rounded-md mb-2"
+                      style={{ border: "1px solid #DCC79E" }}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-24 rounded-md mb-2 flex items-center justify-center text-2xl"
+                      style={{ background: "#F1E4C6" }}
+                    >
+                      ☕
+                    </div>
+                  )}
+                  <div className="font-semibold text-sm leading-tight">{p.name}</div>
+                  {p.price && (
+                    <div className="font-mono text-xs mt-1" style={{ color: "#B85C38" }}>
+                      {p.price}
+                    </div>
+                  )}
+                  {p.description && (
+                    <p className="text-xs mt-1 line-clamp-2" style={{ color: "#7A6449" }}>
+                      {p.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {vendor.latitude != null && vendor.longitude != null && (
