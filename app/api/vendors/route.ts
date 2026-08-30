@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
     const vendors = await db.vendor.findMany({
       where: { ownerId: userId },
-      include: { photos: true, reviews: true },
+      include: { photos: true, reviews: true, products: true },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(vendors);
@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     include: {
       photos: { take: 1, orderBy: { createdAt: "asc" } },
       reviews: { select: { rating: true } },
+      products: { select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
   });
