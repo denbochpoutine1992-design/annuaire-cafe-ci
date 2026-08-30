@@ -10,6 +10,12 @@ function rotationFor(id: string) {
   return (h % 5) - 2;
 }
 
+function waLink(phone: string) {
+  const digits = phone.replace(/[^\d]/g, "");
+  const withCountry = digits.startsWith("225") ? digits : `225${digits.replace(/^0+/, "")}`;
+  return `https://wa.me/${withCountry}`;
+}
+
 export default function VendorCard({ vendor }: { vendor: any }) {
   const rot = rotationFor(vendor.id);
   const avgRating =
@@ -60,11 +66,34 @@ export default function VendorCard({ vendor }: { vendor: any }) {
         </div>
       )}
 
+      {vendor.products?.length > 0 && (
+        <div className="mt-3 font-mono text-xs" style={{ color: "#B85C38" }}>
+          🛍️ {vendor.products.length} article{vendor.products.length !== 1 ? "s" : ""}
+        </div>
+      )}
+
       <div
-        className="mt-4 pt-3 font-mono text-xs"
-        style={{ borderTop: "1px dashed #DCC79E", color: "#2B1B14" }}
+        className="mt-4 pt-3 flex items-center gap-2 font-mono text-xs"
+        style={{ borderTop: "1px dashed #DCC79E" }}
       >
-        📞 {vendor.phone}
+        
+          href={`tel:${vendor.phone}`}
+          onClick={(e) => e.stopPropagation()}
+          className="stitch px-3 py-1.5"
+          style={{ color: "#2B1B14" }}
+        >
+          📞 Appeler
+        </a>
+        
+          href={waLink(vendor.phone)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="btn-primary px-3 py-1.5"
+          style={{ borderRadius: "8px" }}
+        >
+          💬 WhatsApp
+        </a>
       </div>
     </Link>
   );
