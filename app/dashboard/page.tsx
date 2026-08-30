@@ -60,7 +60,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="font-display font-semibold">{v.name}</div>
                   <div className="text-xs font-mono mt-1" style={{ color: "#8A7355" }}>
-                    {catLabel(v.category)} · {v.city} · {v.photos?.length || 0} photo(s) · {v.reviews?.length || 0} avis
+                    {catLabel(v.category)} · {v.city} · {v.photos?.length || 0} photo(s) · {v.products?.length || 0} article(s) · {v.reviews?.length || 0} avis
                   </div>
                 </div>
                 <span className="font-mono text-xs" style={{ color: "#B85C38" }}>Gérer →</span>
