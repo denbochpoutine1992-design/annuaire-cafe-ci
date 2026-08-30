@@ -44,7 +44,7 @@ export default function NewVendorPage() {
       <main className="px-6 md:px-12 py-10 max-w-lg mx-auto">
         <h1 className="font-display font-semibold text-2xl">Nouveau commerce</h1>
         <p className="text-sm mt-1" style={{ color: "#8A7355" }}>
-          Vous pourrez ajouter des photos une fois la fiche créée.
+          Vous pourrez ajouter des photos et vos articles une fois la fiche créée.
         </p>
         <form onSubmit={submit} className="mt-6">
           <VendorFormFields form={form} setForm={setForm} />
