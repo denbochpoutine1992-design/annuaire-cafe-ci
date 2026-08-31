@@ -4,18 +4,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: "#2B1B14",
-        paper: "#F6EEDD",
-        paperRaised: "#FBF5E9",
-        gold: "#C68A2E",
-        clay: "#B85C38",
-        forest: "#275C43",
-        line: "#DCC79E",
+        ink: "#18181B",
+        paper: "#FAFAF9",
+        paperRaised: "#FFFFFF",
+        gold: "#F59E0B",
+        clay: "#C2410C",
+        forest: "#15803D",
+        line: "#E7E5E4",
       },
       fontFamily: {
-        display: ["Fraunces", "serif"],
-        body: ["Work Sans", "sans-serif"],
-        mono: ["Space Mono", "monospace"],
+        display: ["Plus Jakarta Sans", "sans-serif"],
+        body: ["Inter", "sans-serif"],
+        mono: ["Inter", "sans-serif"],
       },
     },
   },
