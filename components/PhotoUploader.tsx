@@ -59,7 +59,7 @@ export default function PhotoUploader({
         {uploading ? "Envoi..." : "Ajouter une photo"}
         <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden" />
       </label>
-      {error && <p className="text-xs mt-2" style={{ color: "#B85C38" }}>{error}</p>}
+      {error && <p className="text-xs mt-2" style={{ color: "#C2410C" }}>{error}</p>}
     </div>
   );
 }
