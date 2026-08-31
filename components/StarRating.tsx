@@ -19,7 +19,7 @@ export default function StarRating({
           style={{
             cursor: interactive ? "pointer" : "default",
             fontSize: size,
-            color: s <= Math.round(value) ? "#C68A2E" : "#DCC79E",
+            color: s <= Math.round(value) ? "#F59E0B" : "#E7E5E4",
             lineHeight: 1,
           }}
           aria-hidden
