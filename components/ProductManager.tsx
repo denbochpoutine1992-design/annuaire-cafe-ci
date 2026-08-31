@@ -84,7 +84,7 @@ export default function ProductManager({
     <div>
       <div className="flex flex-col gap-3">
         {products.length === 0 && (
-          <p className="text-sm" style={{ color: "#8A7355" }}>
+          <p className="text-sm" style={{ color: "#78716C" }}>
             Aucun article pour l'instant. Ajoutez vos produits ci-dessous.
           </p>
         )}
@@ -138,18 +138,18 @@ export default function ProductManager({
                     src={p.photoUrl}
                     alt={p.name}
                     className="w-14 h-14 object-cover rounded-md shrink-0"
-                    style={{ border: "1px solid #DCC79E" }}
+                    style={{ border: "1px solid #E7E5E4" }}
                   />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm truncate">{p.name}</div>
                   {p.price && (
-                    <div className="font-mono text-xs mt-0.5" style={{ color: "#B85C38" }}>
+                    <div className="font-mono text-xs mt-0.5" style={{ color: "#C2410C" }}>
                       {p.price}
                     </div>
                   )}
                   {p.description && (
-                    <div className="text-xs mt-1 line-clamp-2" style={{ color: "#7A6449" }}>
+                    <div className="text-xs mt-1 line-clamp-2" style={{ color: "#57534E" }}>
                       {p.description}
                     </div>
                   )}
@@ -164,7 +164,7 @@ export default function ProductManager({
                   <button
                     onClick={() => deleteProduct(p.id)}
                     className="font-mono text-xs px-3 py-1.5 rounded-full border border-line"
-                    style={{ color: "#B85C38" }}
+                    style={{ color: "#C2410C" }}
                   >
                     Supprimer
                   </button>
@@ -176,7 +176,7 @@ export default function ProductManager({
       </div>
 
       <form onSubmit={addProduct} className="stitch p-4 mt-4 flex flex-col gap-3">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Ajouter un article
         </span>
         <ImageUploadField
@@ -202,7 +202,7 @@ export default function ProductManager({
           rows={2}
           className="px-3 py-2 rounded-lg text-sm border border-line resize-none"
         />
-        {error && <p className="text-xs" style={{ color: "#B85C38" }}>{error}</p>}
+        {error && <p className="text-xs" style={{ color: "#C2410C" }}>{error}</p>}
         <button disabled={adding} className="btn-primary font-mono text-xs px-4 py-2 rounded-full self-start">
           {adding ? "Ajout..." : "+ Ajouter l'article"}
         </button>
