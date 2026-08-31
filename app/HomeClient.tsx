@@ -39,7 +39,7 @@ export default function HomeClient() {
     <div>
       <header className="px-6 md:px-12 pt-14 pb-10 border-b border-line">
         <div className="max-w-5xl mx-auto">
-          <div className="stamp" style={{ color: "#275C43" }}>
+          <div className="stamp" style={{ color: "#15803D" }}>
             ☕ Côte d'Ivoire · Robusta &amp; Arabica
           </div>
           <h1
@@ -47,9 +47,9 @@ export default function HomeClient() {
             style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}
           >
             L'annuaire du café&nbsp;
-            <span style={{ color: "#B85C38" }}>ivoirien</span>
+            <span style={{ color: "#C2410C" }}>ivoirien</span>
           </h1>
-          <p className="mt-4 max-w-xl text-base md:text-lg" style={{ color: "#5A4633" }}>
+          <p className="mt-4 max-w-xl text-base md:text-lg" style={{ color: "#292524" }}>
             Torréfacteurs, boutiques, cafés de quartier et grossistes — trouvez ou
             faites connaître un vendeur de café en Côte d'Ivoire.
           </p>
@@ -58,11 +58,11 @@ export default function HomeClient() {
             <div className="flex font-mono text-sm">
               <div className="pr-4">
                 <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{vendors.length}</div>
-                <div style={{ color: "#8A7355" }}>vendeur{vendors.length !== 1 ? "s" : ""}</div>
+                <div style={{ color: "#78716C" }}>vendeur{vendors.length !== 1 ? "s" : ""}</div>
               </div>
               <div className="px-4 border-l border-line">
                 <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{villesCouvertes}</div>
-                <div style={{ color: "#8A7355" }}>ville{villesCouvertes !== 1 ? "s" : ""}</div>
+                <div style={{ color: "#78716C" }}>ville{villesCouvertes !== 1 ? "s" : ""}</div>
               </div>
             </div>
             <button
@@ -108,7 +108,7 @@ export default function HomeClient() {
 
       <main className="px-6 md:px-12 py-10 max-w-5xl mx-auto">
         {loading ? (
-          <div className="text-center py-20 font-mono text-sm" style={{ color: "#8A7355" }}>
+          <div className="text-center py-20 font-mono text-sm" style={{ color: "#78716C" }}>
             Chargement...
           </div>
         ) : vendors.length === 0 ? (
@@ -116,7 +116,7 @@ export default function HomeClient() {
             <h3 className="font-display font-semibold text-2xl">
               Aucun vendeur pour l'instant
             </h3>
-            <p className="mt-2 text-sm" style={{ color: "#8A7355" }}>
+            <p className="mt-2 text-sm" style={{ color: "#78716C" }}>
               Essayez d'autres filtres, ou soyez le premier à inscrire un commerce.
             </p>
           </div>
@@ -131,7 +131,7 @@ export default function HomeClient() {
         )}
       </main>
 
-      <footer className="px-6 md:px-12 py-8 text-center font-mono text-xs" style={{ color: "#9C8767" }}>
+      <footer className="px-6 md:px-12 py-8 text-center font-mono text-xs" style={{ color: "#A8A29E" }}>
         Annuaire communautaire — chaque fiche est ajoutée par son propriétaire. Vérifiez les informations avant tout achat.
       </footer>
     </div>
