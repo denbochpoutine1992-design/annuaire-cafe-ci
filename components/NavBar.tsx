@@ -6,7 +6,7 @@ export default async function NavBar() {
 
   return (
     <nav className="px-6 md:px-12 py-4 flex items-center justify-between border-b border-line">
-      <Link href="/" className="font-display font-semibold text-lg" style={{ color: "#2B1B14" }}>
+      <Link href="/" className="font-display font-semibold text-lg" style={{ color: "#18181B" }}>
         ☕ Annuaire Café CI
       </Link>
       <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-wide">
