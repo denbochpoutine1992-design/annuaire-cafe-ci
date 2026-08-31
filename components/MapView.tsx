@@ -40,7 +40,7 @@ export default function MapView({
                 <br />
                 {v.city}
                 <br />
-                <Link href={`/vendors/${v.id}`} style={{ color: "#B85C38" }}>
+                <Link href={`/vendors/${v.id}`} style={{ color: "#C2410C" }}>
                   Voir la fiche →
                 </Link>
               </div>
