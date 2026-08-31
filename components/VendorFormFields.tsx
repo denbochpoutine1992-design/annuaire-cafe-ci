@@ -46,7 +46,7 @@ export default function VendorFormFields({
   return (
     <div className="flex flex-col gap-4">
       <label className="block">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Nom du commerce *
         </span>
         <input
@@ -58,7 +58,7 @@ export default function VendorFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+          <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
             Catégorie
           </span>
           <select
@@ -72,7 +72,7 @@ export default function VendorFormFields({
           </select>
         </label>
         <label className="block">
-          <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+          <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
             Ville *
           </span>
           <select
@@ -88,7 +88,7 @@ export default function VendorFormFields({
       </div>
 
       <label className="block">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Quartier
         </span>
         <input
@@ -99,7 +99,7 @@ export default function VendorFormFields({
       </label>
 
       <label className="block">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Téléphone / WhatsApp *
         </span>
         <input
@@ -110,7 +110,7 @@ export default function VendorFormFields({
       </label>
 
       <label className="block">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Description
         </span>
         <textarea
@@ -122,7 +122,7 @@ export default function VendorFormFields({
       </label>
 
       <label className="block">
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Prix (optionnel)
         </span>
         <input
@@ -134,7 +134,7 @@ export default function VendorFormFields({
       </label>
 
       <div>
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#8A7355" }}>
+        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: "#78716C" }}>
           Emplacement (cliquez sur la carte)
         </span>
         <div className="mt-1.5">
