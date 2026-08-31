@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
 @import "leaflet/dist/leaflet.css";
 
 @tailwind base;
@@ -6,55 +6,54 @@
 @tailwind utilities;
 
 body {
-  background: #f6eedd;
-  color: #2b1b14;
+  background: #fafaf9;
+  color: #18181b;
 }
 
 .stitch {
-  border: 2px dashed #b85c38;
-  border-radius: 10px;
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  background: #ffffff;
 }
 
 .tag-hole {
-  position: absolute;
-  top: -10px;
-  left: 22px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #f6eedd;
-  border: 2px dashed #b85c38;
+  display: none;
 }
 
 .stamp {
-  font-family: "Space Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  border: 1.5px solid currentColor;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 10%, white);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
 .vendor-card {
-  background: #fbf5e9;
-  box-shadow: 0 1px 0 rgba(43, 27, 20, 0.06), 0 8px 18px -12px rgba(43, 27, 20, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: #ffffff;
+  border: 1px solid #e7e5e4;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .vendor-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px -10px rgba(43, 27, 20, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -12px rgba(24, 24, 27, 0.18);
+  border-color: #d4d4d4;
 }
 
 .btn-primary {
-  background: #b85c38;
-  color: #fbf5e9;
+  background: #c2410c;
+  color: #ffffff;
+  font-weight: 600;
 }
 .btn-primary:hover {
-  background: #a04e2f;
+  background: #9a3412;
 }
 .btn-primary:disabled {
   opacity: 0.6;
