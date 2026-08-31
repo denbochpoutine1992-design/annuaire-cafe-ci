@@ -52,17 +52,17 @@ export default function ImageUploadField({
           src={value}
           alt=""
           className="w-14 h-14 object-cover rounded-md"
-          style={{ border: "1px solid #DCC79E" }}
+          style={{ border: "1px solid #E7E5E4" }}
         />
       )}
       <label
         className="font-mono text-xs px-3 py-2 rounded-full border border-line cursor-pointer"
-        style={{ color: "#2B1B14" }}
+        style={{ color: "#18181B" }}
       >
         {uploading ? "Envoi..." : value ? "Changer la photo" : "Ajouter une photo"}
         <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden" />
       </label>
-      {error && <p className="text-xs" style={{ color: "#B85C38" }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: "#C2410C" }}>{error}</p>}
     </div>
   );
 }
