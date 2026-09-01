@@ -37,12 +37,21 @@ export async function GET(req: NextRequest) {
     include: {
       photos: { take: 1, orderBy: { createdAt: "asc" } },
       reviews: { select: { rating: true } },
-      products: { select: { id: true } },
+      products: { select: { id: true, name: true, price: true, photoUrl: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }],
   });
 
-  return NextResponse.json(vendors);
+  const now = new Date();
+  const sorted = vendors.sort((a: any, b: any) => {
+    const aFeatured = a.featured && a.featuredUntil && new Date(a.featuredUntil) > now;
+    const bFeatured = b.featured && b.featuredUntil && new Date(b.featuredUntil) > now;
+    if (aFeatured && !bFeatured) return -1;
+    if (!aFeatured && bFeatured) return 1;
+    return 0;
+  });
+
+  return NextResponse.json(sorted);
 }
 
 export async function POST(req: NextRequest) {
