@@ -302,7 +302,7 @@ export default function HomeClient() {
 
   return (
     <button
-      key={value}
+      key={c.label}
       onClick={() => setCategory(value)}
       className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm transition ${
         category === value
