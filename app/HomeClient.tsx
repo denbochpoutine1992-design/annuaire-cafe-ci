@@ -45,56 +45,68 @@ export default function HomeClient() {
 
   return (
     <div>
-      <header className="px-6 md:px-12 pt-14 pb-10 border-b border-line">
+      <header className="px-6 md:px-12 pt-14 pb-12" style={{ background: "#F4F4F5" }}>
         <div className="max-w-5xl mx-auto">
           <div className="stamp" style={{ color: "#3F3F46" }}>
             ☕ Côte d'Ivoire · Robusta &amp; Arabica
           </div>
           <h1
-            className="font-display mt-5 leading-[0.95] font-semibold"
-            style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}
+            className="mt-5 leading-[1.05] font-bold"
+            style={{ fontSize: "clamp(2.25rem, 5.5vw, 3.75rem)", color: "#18181B" }}
           >
-            L'annuaire du café&nbsp;
-            <span style={{ color: "#18181B" }}>ivoirien</span>
+            L'annuaire du café ivoirien
           </h1>
-          <p className="mt-4 max-w-xl text-base md:text-lg" style={{ color: "#18181B" }}>
+          <p className="mt-4 max-w-xl text-base md:text-lg" style={{ color: "#3F3F46" }}>
             Torréfacteurs, boutiques, cafés de quartier et grossistes — trouvez ou
             faites connaître un vendeur de café en Côte d'Ivoire.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-6">
-            <div className="flex font-mono text-sm">
-              <div className="pr-4">
-                <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{vendors.length}</div>
-                <div style={{ color: "#71717A" }}>vendeur{vendors.length !== 1 ? "s" : ""}</div>
-              </div>
-              <div className="px-4 border-l border-line">
-                <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{villesCouvertes}</div>
-                <div style={{ color: "#71717A" }}>ville{villesCouvertes !== 1 ? "s" : ""}</div>
+          <div className="mt-8 grid grid-cols-3 gap-3 max-w-md">
+            <div className="stitch p-4 text-center">
+              <div className="text-2xl font-bold">{vendors.length}</div>
+              <div className="text-xs mt-1" style={{ color: "#71717A" }}>
+                Vendeur{vendors.length !== 1 ? "s" : ""}
               </div>
             </div>
-            <button
-              onClick={() => setShowMap((s) => !s)}
-              className="font-mono text-sm px-5 py-3 rounded-full border border-line"
-            >
-              {showMap ? "Voir la liste" : "🗺️ Voir la carte"}
-            </button>
+            <div className="stitch p-4 text-center">
+              <div className="text-2xl font-bold">{villesCouvertes}</div>
+              <div className="text-xs mt-1" style={{ color: "#71717A" }}>
+                Ville{villesCouvertes !== 1 ? "s" : ""}
+              </div>
+            </div>
+            <div className="stitch p-4 text-center">
+              <div className="text-2xl font-bold">{products.length}</div>
+              <div className="text-xs mt-1" style={{ color: "#71717A" }}>
+                Article{products.length !== 1 ? "s" : ""}
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowMap((s) => !s)}
+            className="mt-6 text-sm px-5 py-3 rounded-full font-medium"
+            style={{ border: "1px solid #E4E4E7", background: "#fff" }}
+          >
+            {showMap ? "Voir la liste" : "🗺️ Voir la carte"}
+          </button>
         </div>
       </header>
 
-      <div className="px-6 md:px-12 py-4 sticky top-0 z-10 bg-paper border-b border-line">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-3">
+      <div className="px-6 md:px-12 -mt-6 relative z-10">
+        <div
+          className="max-w-5xl mx-auto flex flex-col md:flex-row gap-3 p-3 rounded-2xl"
+          style={{ background: "#fff", border: "1px solid #E4E4E7", boxShadow: "0 12px 24px -16px rgba(24,24,27,0.18)" }}
+        >
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un nom, un quartier..."
-            className="flex-1 px-4 py-3 rounded-lg text-sm border border-line bg-paperRaised"
+            placeholder="🔍  Rechercher un nom, un quartier..."
+            className="flex-1 px-4 py-3 rounded-xl text-sm border border-line"
           />
           <select
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
-            className="px-4 py-3 rounded-lg text-sm border border-line bg-paperRaised"
+            className="px-4 py-3 rounded-xl text-sm border border-line"
           >
             <option value="">Toutes les villes</option>
             {VILLES.map((v) => (
@@ -104,7 +116,7 @@ export default function HomeClient() {
           <select
             value={catFilter}
             onChange={(e) => setCatFilter(e.target.value)}
-            className="px-4 py-3 rounded-lg text-sm border border-line bg-paperRaised"
+            className="px-4 py-3 rounded-xl text-sm border border-line"
           >
             <option value="">Toutes les catégories</option>
             {CATEGORIES.map((c) => (
@@ -145,8 +157,41 @@ export default function HomeClient() {
         )}
       </main>
 
-      <footer className="px-6 md:px-12 py-8 text-center font-mono text-xs" style={{ color: "#A1A1AA" }}>
-        Annuaire communautaire — chaque fiche est ajoutée par son propriétaire. Vérifiez les informations avant tout achat.
+      <footer className="mt-10" style={{ background: "#18181B" }}>
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-10 grid sm:grid-cols-3 gap-8 text-sm">
+          <div>
+            <div className="font-semibold text-base text-white">☕ Annuaire Café CI</div>
+            <p className="mt-2" style={{ color: "#A1A1AA" }}>
+              L'annuaire de référence des professionnels du café en Côte d'Ivoire.
+            </p>
+          </div>
+          <div>
+            <div className="font-semibold text-white mb-2">Liens utiles</div>
+            <div className="flex flex-col gap-1.5" style={{ color: "#A1A1AA" }}>
+              <a href="/register" className="hover:text-white">Inscrire mon commerce</a>
+              <a href="/devenir-premium" className="hover:text-white">Fiche vedette</a>
+              <a href="/login" className="hover:text-white">Connexion</a>
+            </div>
+          </div>
+          <div>
+            <div className="font-semibold text-white mb-2">Contact</div>
+            <a
+              href="https://wa.me/2250749583050"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+              style={{ color: "#A1A1AA" }}
+            >
+              💬 WhatsApp
+            </a>
+          </div>
+        </div>
+        <div
+          className="text-center text-xs py-5"
+          style={{ color: "#71717A", borderTop: "1px solid #27272A" }}
+        >
+          Annuaire communautaire — chaque fiche est ajoutée par son propriétaire. Vérifiez les informations avant tout achat.
+        </div>
       </footer>
     </div>
   );
