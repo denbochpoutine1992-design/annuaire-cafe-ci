@@ -298,17 +298,22 @@ export default function HomeClient() {
           </button>
 
           {CATEGORIES.map((c: any) => {
-            const value = String(c);
+  const value = c.id;
 
-            return (
-              <button
-                key={value}
-                onClick={() => setCategory(value)}
-                className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm transition ${
-                  category === value
-                    ? "bg-[#c9a24d] text-black"
-                    : "border border-white/15 text-white/60 hover:border-white/40"
-                }`}
+  return (
+    <button
+      key={value}
+      onClick={() => setCategory(value)}
+      className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm transition ${
+        category === value
+          ? "bg-[#c9a24d] text-black"
+          : "border border-white/15 text-white/60 hover:border-white/40"
+      }`}
+    >
+      {c.label}
+    </button>
+  );
+})}
               >
                 {value}
               </button>
