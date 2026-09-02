@@ -309,15 +309,11 @@ export default function HomeClient() {
           ? "bg-[#c9a24d] text-black"
           : "border border-white/15 text-white/60 hover:border-white/40"
       }`}
-    >
-      {c.label}
-    </button>
+    
+      
+  
   );
 })}
-              >
-                {value}
-              </button>
-            );
           })}
         </div>
 
