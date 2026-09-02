@@ -10,6 +10,18 @@ function waLink(phone: string) {
   return `https://wa.me/${withCountry}`;
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  torrefacteur: "#7C4A2D",
+  detaillant: "#166534",
+  communautaire: "#B45309",
+  grossiste: "#9333EA",
+  enligne: "#1D4ED8",
+};
+
+function catColor(category: string) {
+  return CATEGORY_COLORS[category] || "#3F3F46";
+}
+
 export default function VendorCard({ vendor }: { vendor: any }) {
   const avgRating =
     vendor.reviews?.length > 0
@@ -18,84 +30,103 @@ export default function VendorCard({ vendor }: { vendor: any }) {
   const cover = vendor.photos?.[0]?.url;
   const isFeatured =
     vendor.featured && vendor.featuredUntil && new Date(vendor.featuredUntil) > new Date();
+  const accent = catColor(vendor.category);
 
   return (
     <Link
       href={`/vendors/${vendor.id}`}
-      className="stitch vendor-card relative p-5 block"
-      style={isFeatured ? { borderColor: "#18181B", borderWidth: "1.5px" } : undefined}
+      className="vendor-card relative block overflow-hidden"
+      style={{
+        borderRadius: 16,
+        border: isFeatured ? `1.5px solid ${accent}` : "1px solid #E4E4E7",
+      }}
     >
-      {isFeatured && (
-        <div
-          className="font-mono text-[11px] font-semibold uppercase tracking-wide mb-2 inline-flex items-center gap-1 px-2 py-1 rounded-full"
-          style={{ color: "#18181B", background: "#F4F4F5" }}
-        >
-          ⭐ En vedette
+      <div style={{ height: 4, background: accent }} />
+      <div className="p-5">
+        {isFeatured && (
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wide mb-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+            style={{ color: accent, background: "#F4F4F5" }}
+          >
+            ⭐ En vedette
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          {cover ? (
+            <img
+              src={cover}
+              alt={vendor.name}
+              className="w-14 h-14 object-cover rounded-full shrink-0"
+              style={{ border: "1px solid #E4E4E7" }}
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center font-semibold text-lg text-white"
+              style={{ background: accent }}
+            >
+              {vendor.name?.charAt(0)?.toUpperCase() || "?"}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-lg leading-tight truncate">{vendor.name}</h3>
+            <div className="text-xs mt-1" style={{ color: "#71717A" }}>
+              📍 {vendor.neighborhood ? `${vendor.neighborhood}, ` : ""}
+              {vendor.city}
+            </div>
+          </div>
         </div>
-      )}
-      {cover && (
-        <img
-          src={cover}
-          alt={vendor.name}
-          className="w-full h-32 object-cover rounded-md mb-3"
-          style={{ border: "1px solid #E4E4E7" }}
-        />
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-display font-semibold text-xl leading-tight">{vendor.name}</h3>
-        <span className="stamp shrink-0" style={{ color: "#3F3F46" }}>
-          {catLabel(vendor.category)}
-        </span>
-      </div>
 
-      <div className="mt-2 text-sm" style={{ color: "#52525B" }}>
-        📍 {vendor.neighborhood ? `${vendor.neighborhood}, ` : ""}
-        {vendor.city}
-      </div>
-
-      {vendor.description && (
-        <p className="mt-3 text-sm leading-relaxed line-clamp-2" style={{ color: "#18181B" }}>
-          {vendor.description}
-        </p>
-      )}
-
-      {vendor.reviews?.length > 0 && (
-        <div className="mt-3 flex items-center gap-2">
-          <StarRating value={avgRating} />
-          <span className="font-mono text-xs" style={{ color: "#71717A" }}>
-            ({vendor.reviews.length})
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <span
+            className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full"
+            style={{ color: accent, background: "#F4F4F5" }}
+          >
+            {catLabel(vendor.category)}
           </span>
+          {vendor.reviews?.length > 0 && (
+            <div className="flex items-center gap-1">
+              <StarRating value={avgRating} />
+              <span className="text-xs" style={{ color: "#71717A" }}>
+                ({vendor.reviews.length})
+              </span>
+            </div>
+          )}
+          {vendor.products?.length > 0 && (
+            <span className="text-xs" style={{ color: "#71717A" }}>
+              🛍️ {vendor.products.length} article{vendor.products.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-      )}
 
-      {vendor.products?.length > 0 && (
-        <div className="mt-3 font-mono text-xs" style={{ color: "#18181B" }}>
-          🛍️ {vendor.products.length} article{vendor.products.length !== 1 ? "s" : ""}
+        {vendor.description && (
+          <p className="mt-3 text-sm leading-relaxed line-clamp-2" style={{ color: "#3F3F46" }}>
+            {vendor.description}
+          </p>
+        )}
+
+        <div
+          className="mt-4 pt-4 flex items-center gap-2 text-xs font-medium"
+          style={{ borderTop: "1px solid #E4E4E7" }}
+        >
+          <a
+            href={`tel:${vendor.phone}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 text-center px-3 py-2 rounded-full"
+            style={{ border: "1px solid #E4E4E7", color: "#18181B" }}
+          >
+            📞 Appeler
+          </a>
+          <a
+            href={waLink(vendor.phone)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="btn-primary flex-1 text-center px-3 py-2 rounded-full"
+          >
+            💬 WhatsApp
+          </a>
         </div>
-      )}
-
-      <div
-        className="mt-4 pt-3 flex items-center gap-2 font-mono text-xs"
-        style={{ borderTop: "1px solid #E4E4E7" }}
-      >
-        <a
-          href={`tel:${vendor.phone}`}
-          onClick={(e) => e.stopPropagation()}
-          className="stitch px-3 py-1.5"
-          style={{ color: "#18181B" }}
-        >
-          📞 Appeler
-        </a>
-        <a
-          href={waLink(vendor.phone)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="btn-primary px-3 py-1.5"
-          style={{ borderRadius: "8px" }}
-        >
-          💬 WhatsApp
-        </a>
       </div>
     </Link>
   );
