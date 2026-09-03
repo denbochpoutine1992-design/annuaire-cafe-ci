@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+
 import VendorCard from "@/components/VendorCard";
 import { CATEGORIES, VILLES } from "@/lib/constants";
 
@@ -11,429 +13,549 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 
 export default function HomeClient() {
   const [vendors, setVendors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
-  const [showMap, setShowMap] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const params = new URLSearchParams();
+  async function loadVendors() {
+    try {
+      setLoading(true);
 
-    if (q.trim()) params.set("q", q.trim());
-    if (city) params.set("city", city);
-    if (category) params.set("category", category);
+      const params = new URLSearchParams();
 
-    setLoading(true);
+      if (q.trim()) params.set("q", q.trim());
+      if (city) params.set("city", city);
+      if (category) params.set("category", category);
 
-    fetch(`/api/vendors?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setVendors(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        setVendors([]);
-      })
-      .finally(() => {
-        setLoading(false);
+      const url = params.toString()
+        ? `/api/vendors?${params.toString()}`
+        : "/api/vendors";
+
+      const res = await fetch(url, {
+        cache: "no-store",
       });
-  }, [q, city, category]);
 
-  const stats = useMemo(() => {
-    const cities = new Set(
-      vendors.map((v) => v.city).filter(Boolean)
-    );
+      if (!res.ok) {
+        setVendors([]);
+        return;
+      }
 
-    return {
-      vendors: vendors.length,
-      cities: cities.size,
-    };
-  }, [vendors]);
-
-  const categories = [
-    {
-      name: "Cafés & Coffee Shops",
-      value: "cafe",
-      image:
-        "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      name: "Torréfacteurs",
-      value: "torrefacteur",
-      image:
-        "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      name: "Boutiques & Vendeurs",
-      value: "boutique",
-      image:
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      name: "Grossistes",
-      value: "grossiste",
-      image:
-        "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=85",
-    },
-  ];
-
-  function chooseCategory(value: string) {
-    setCategory(value);
-    window.scrollTo({
-      top: 700,
-      behavior: "smooth",
-    });
+      const data = await res.json();
+      setVendors(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setVendors([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  useEffect(() => {
+    loadVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city, category]);
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    loadVendors();
+  }
+
+  function selectCategory(id: string) {
+    setCategory((current) => (current === id ? "" : id));
+  }
+
+  function resetFilters() {
+    setQ("");
+    setCity("");
+    setCategory("");
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 50);
+  }
+
+  const cityCount = useMemo(() => {
+    return new Set(
+      vendors
+        .map((vendor) => vendor.city)
+        .filter(Boolean)
+    ).size;
+  }, [vendors]);
+
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
+    <main
+      className="min-h-screen"
+      style={{
+        background: "#F7F3EC",
+        color: "#18120E",
+      }}
+    >
       {/* HERO */}
-      <section className="relative min-h-[680px] overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1498804103079-a6351b050096?auto=format&fit=crop&w=1800&q=90"
-          alt="Café"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-
-        <div className="absolute inset-0 bg-black/65" />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/25 to-black/45" />
-
-        <div className="relative z-10 mx-auto flex min-h-[680px] max-w-7xl items-end px-6 pb-16 pt-32 md:px-12">
+      <section
+        className="relative overflow-hidden"
+        style={{
+          minHeight: "640px",
+          background:
+            "linear-gradient(90deg, rgba(14,10,7,0.94) 0%, rgba(14,10,7,0.78) 45%, rgba(14,10,7,0.25) 100%), url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1800&q=85') center/cover no-repeat",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-20 md:py-28">
           <div className="max-w-3xl">
-            <p className="mb-5 font-mono text-xs uppercase tracking-[0.3em] text-[#d7b15a]">
-              L'univers du café ivoirien
-            </p>
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs uppercase tracking-[0.2em] font-semibold mb-7"
+              style={{
+                color: "#E7C780",
+                border: "1px solid rgba(231,199,128,0.45)",
+                background: "rgba(0,0,0,0.25)",
+              }}
+            >
+              ☕ L’univers du café ivoirien
+            </div>
 
-            <h1 className="font-display text-5xl font-semibold leading-[0.95] tracking-tight md:text-7xl">
-              Découvrez
+            <h1
+              className="font-display font-semibold"
+              style={{
+                color: "#FFFDF9",
+                fontSize: "clamp(3rem, 7vw, 6.4rem)",
+                lineHeight: "0.94",
+                letterSpacing: "-0.055em",
+              }}
+            >
+              Découvrez le
               <br />
-              le café autrement.
+              café autrement.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/80 md:text-xl">
-              Trouvez les meilleurs cafés, torréfacteurs, boutiques,
-              vendeurs et professionnels du café en Côte d'Ivoire.
+            <p
+              className="mt-7 max-w-2xl text-base md:text-xl leading-relaxed"
+              style={{ color: "#E9E0D4" }}
+            >
+              Torréfacteurs, boutiques, grossistes, vendeurs en ligne et
+              professionnels du café en Côte d’Ivoire réunis au même endroit.
             </p>
 
             {/* SEARCH */}
-            <div className="mt-8 flex max-w-3xl flex-col gap-3 md:flex-row">
-              <div className="flex flex-1 items-center rounded-xl border border-white/20 bg-white/95 px-4 shadow-2xl">
-                <span className="mr-3 text-xl text-black/50">⌕</span>
+            <form
+              onSubmit={submitSearch}
+              className="mt-10 p-3 md:p-4 rounded-2xl"
+              style={{
+                background: "rgba(255,255,255,0.97)",
+                boxShadow: "0 24px 70px rgba(0,0,0,0.28)",
+              }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_200px_auto] gap-3">
+                <div className="flex items-center px-4 rounded-xl bg-white">
+                  <span className="mr-3">⌕</span>
 
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Rechercher un café, une boutique..."
-                  className="w-full bg-transparent py-4 text-sm text-black outline-none placeholder:text-black/45"
-                />
+                  <input
+                    type="text"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Nom, quartier, café..."
+                    className="w-full py-4 outline-none bg-transparent text-sm md:text-base"
+                    style={{ color: "#18120E" }}
+                  />
+                </div>
+
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="px-4 py-4 rounded-xl outline-none text-sm"
+                  style={{
+                    background: "#F4EFE7",
+                    color: "#18120E",
+                  }}
+                >
+                  <option value="">Toute la Côte d’Ivoire</option>
+
+                  {VILLES.map((ville) => (
+                    <option key={ville} value={ville}>
+                      {ville}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="submit"
+                  className="px-7 py-4 rounded-xl font-semibold transition hover:opacity-90"
+                  style={{
+                    background: "#B78B42",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  Rechercher
+                </button>
               </div>
+            </form>
 
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="rounded-xl border border-white/20 bg-[#171717] px-5 py-4 text-sm text-white outline-none"
-              >
-                <option value="">Toutes les villes</option>
-                {VILLES.map((v: any) => (
-                  <option key={String(v)} value={String(v)}>
-                    {String(v)}
-                  </option>
-                ))}
-              </select>
+            <div
+              className="mt-8 flex flex-wrap gap-x-10 gap-y-4 text-sm"
+              style={{ color: "#D9CCBD" }}
+            >
+              <span>
+                <strong
+                  className="text-xl mr-2"
+                  style={{ color: "#FFFDF9" }}
+                >
+                  {vendors.length}
+                </strong>
+                commerces
+              </span>
 
-              <button
-                onClick={() => {
-                  window.scrollTo({
-                    top: 760,
-                    behavior: "smooth",
-                  });
-                }}
-                className="rounded-xl bg-[#c9a24d] px-7 py-4 font-medium text-black transition hover:bg-[#dfbb69]"
-              >
-                Rechercher →
-              </button>
+              <span>
+                <strong
+                  className="text-xl mr-2"
+                  style={{ color: "#FFFDF9" }}
+                >
+                  {cityCount}
+                </strong>
+                villes
+              </span>
+
+              <span>🇨🇮 100% Côte d’Ivoire</span>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* INTRO */}
-      <section className="mx-auto max-w-7xl px-6 py-20 md:px-12 md:py-28">
-        <div className="max-w-3xl">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#c9a24d]">
-            Annuaire Café CI
-          </p>
-
-          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight md:text-5xl">
-            Votre expérience café
-            <br />
-            commence ici.
-          </h2>
-
-          <p className="mt-6 max-w-2xl text-base leading-8 text-white/60 md:text-lg">
-            Explorez l'univers du café en Côte d'Ivoire. Découvrez des
-            adresses, des professionnels passionnés et de nouveaux produits
-            près de chez vous.
-          </p>
         </div>
       </section>
 
       {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl px-6 pb-24 md:px-12">
-        <div className="mb-10 flex items-end justify-between gap-5">
+      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-10">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#c9a24d]">
+            <p
+              className="uppercase tracking-[0.2em] text-xs font-semibold mb-3"
+              style={{ color: "#A47632" }}
+            >
               Explorer
             </p>
 
-            <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
-              Explorez l'univers du café
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {categories.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => chooseCategory(item.value)}
-              className="group text-left"
+            <h2
+              className="font-display font-semibold"
+              style={{
+                fontSize: "clamp(2rem, 4vw, 3.5rem)",
+                letterSpacing: "-0.035em",
+              }}
             >
-              <div className="relative aspect-[0.85] overflow-hidden rounded-2xl bg-[#151515]">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-
-                <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-                  <h3 className="font-display text-xl font-medium md:text-2xl">
-                    {item.name}
-                  </h3>
-
-                  <p className="mt-2 text-sm text-white/60">
-                    Découvrir →
-                  </p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* STATS */}
-      <section className="border-y border-white/10 bg-[#0b0b0b]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-3">
-          <div className="border-r border-white/10 px-6 py-10 text-center">
-            <div className="font-display text-4xl font-semibold text-[#c9a24d]">
-              {stats.vendors}+
-            </div>
-            <p className="mt-2 text-sm text-white/50">
-              Professionnels référencés
-            </p>
-          </div>
-
-          <div className="px-6 py-10 text-center md:border-r md:border-white/10">
-            <div className="font-display text-4xl font-semibold text-[#c9a24d]">
-              {stats.cities}+
-            </div>
-            <p className="mt-2 text-sm text-white/50">
-              Villes représentées
-            </p>
-          </div>
-
-          <div className="col-span-2 hidden px-6 py-10 text-center md:col-span-1 md:block">
-            <div className="font-display text-4xl font-semibold text-[#c9a24d]">
-              100%
-            </div>
-            <p className="mt-2 text-sm text-white/50">
-              Dédié au café ivoirien
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* VENDORS */}
-      <section
-        id="commerces"
-        className="mx-auto max-w-7xl px-6 py-24 md:px-12"
-      >
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#c9a24d]">
-              Sélection
-            </p>
-
-            <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
-              Les adresses à découvrir
+              Trouvez votre café
             </h2>
 
-            <p className="mt-3 text-sm text-white/50">
-              Trouvez votre prochaine expérience café.
+            <p
+              className="mt-3 max-w-xl"
+              style={{ color: "#74685E" }}
+            >
+              Sélectionnez une catégorie pour découvrir les professionnels qui
+              correspondent à vos besoins.
             </p>
           </div>
 
-          <button
-            onClick={() => setShowMap(!showMap)}
-            className="self-start rounded-full border border-white/20 px-5 py-3 text-sm transition hover:border-[#c9a24d] hover:text-[#c9a24d]"
-          >
-            {showMap ? "Voir les commerces" : "Voir la carte"}
-          </button>
+          {(category || city || q) && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-sm font-semibold underline underline-offset-4"
+              style={{ color: "#8A5C20" }}
+            >
+              Effacer les filtres
+            </button>
+          )}
         </div>
 
-        {/* FILTERS */}
-        <div className="mt-10 flex gap-3 overflow-x-auto pb-2">
-          <button
-            onClick={() => setCategory("")}
-            className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm transition ${
-              !category
-                ? "bg-[#c9a24d] text-black"
-                : "border border-white/15 text-white/60 hover:border-white/40"
-            }`}
-          >
-            Tous
-          </button>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {CATEGORIES.map((c) => {
+            const active = category === c.id;
 
-          {CATEGORIES.map((c: any) => {
-  const value = c.id;
+            return (
+              <button
+                type="button"
+                key={c.id}
+                onClick={() => selectCategory(c.id)}
+                className="text-left rounded-2xl p-5 min-h-[150px] transition"
+                style={{
+                  background: active ? "#20150F" : "#FFFDF9",
+                  color: active ? "#FFFFFF" : "#18120E",
+                  border: active
+                    ? "1px solid #20150F"
+                    : "1px solid #E5DDD2",
+                  boxShadow: active
+                    ? "0 14px 34px rgba(34,22,15,0.18)"
+                    : "0 5px 20px rgba(34,22,15,0.04)",
+                }}
+              >
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-xl mb-7"
+                  style={{
+                    background: active ? "#B78B42" : "#F2E8D8",
+                  }}
+                >
+                  ☕
+                </div>
 
-  return (
-    <button
-      key={c.label}
-      onClick={() => setCategory(value)}
-      className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm transition ${
-        category === value
-          ? "bg-[#c9a24d] text-black"
-          : "border border-white/15 text-white/60 hover:border-white/40"
-      }`}
-    
-      
-  
-  );
-})}
+                <div className="font-semibold leading-tight">
+                  {c.label}
+                </div>
+
+                <div
+                  className="mt-2 text-xs"
+                  style={{
+                    color: active ? "#DCCCB9" : "#8A7C70",
+                  }}
+                >
+                  Découvrir →
+                </div>
+              </button>
+            );
           })}
         </div>
-
-        {showMap ? (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-white/10">
-            <MapView vendors={vendors} />
-          </div>
-        ) : loading ? (
-          <div className="py-20 text-center text-sm text-white/40">
-            Recherche des adresses...
-          </div>
-        ) : vendors.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-white/10 bg-[#0c0c0c] px-6 py-20 text-center">
-            <div className="text-4xl">☕</div>
-
-            <h3 className="mt-4 font-display text-2xl">
-              Aucun commerce trouvé
-            </h3>
-
-            <p className="mt-2 text-sm text-white/50">
-              Essayez une autre recherche ou une autre ville.
-            </p>
-
-            <button
-              onClick={() => {
-                setQ("");
-                setCity("");
-                setCategory("");
-              }}
-              className="mt-6 rounded-full bg-[#c9a24d] px-6 py-3 text-sm font-medium text-black"
-            >
-              Réinitialiser
-            </button>
-          </div>
-        ) : (
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {vendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="overflow-hidden rounded-2xl bg-[#f4f0e8] text-black transition duration-300 hover:-translate-y-1"
-              >
-                <VendorCard vendor={vendor} />
-              </div>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* PROFESSIONAL CTA */}
-      <section className="mx-auto max-w-7xl px-6 pb-24 md:px-12">
-        <div className="relative overflow-hidden rounded-3xl bg-[#151515]">
-          <div className="absolute inset-0">
-            <img
-              src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1600&q=85"
-              alt=""
-              className="h-full w-full object-cover opacity-25"
-            />
-            <div className="absolute inset-0 bg-black/60" />
-          </div>
-
-          <div className="relative px-7 py-16 md:px-16 md:py-20">
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#c9a24d]">
+      <section className="max-w-7xl mx-auto px-6 md:px-12 pb-20">
+        <div
+          className="rounded-[28px] overflow-hidden grid md:grid-cols-2"
+          style={{ background: "#21150F" }}
+        >
+          <div className="p-8 md:p-14 flex flex-col justify-center">
+            <p
+              className="uppercase tracking-[0.2em] text-xs font-semibold"
+              style={{ color: "#CDA85D" }}
+            >
               Professionnels
             </p>
 
-            <h2 className="mt-4 max-w-2xl font-display text-4xl font-semibold leading-tight md:text-5xl">
-              Faites découvrir votre univers café.
+            <h2
+              className="font-display font-semibold text-3xl md:text-5xl mt-4"
+              style={{
+                color: "#FFFDF9",
+                letterSpacing: "-0.04em",
+              }}
+            >
+              Faites connaître votre commerce.
             </h2>
 
-            <p className="mt-5 max-w-xl leading-7 text-white/60">
-              Vous êtes torréfacteur, vendeur, boutique, café ou grossiste ?
-              Présentez votre activité sur Annuaire Café CI.
+            <p
+              className="mt-5 leading-relaxed max-w-lg"
+              style={{ color: "#D5C7BA" }}
+            >
+              Créez votre fiche professionnelle et présentez votre activité,
+              vos produits, vos photos et vos coordonnées aux amateurs de café.
             </p>
 
-            <a
-              href="/register"
-              className="mt-8 inline-flex rounded-full bg-[#c9a24d] px-7 py-4 font-medium text-black transition hover:bg-[#dfbb69]"
-            >
-              Ajouter mon commerce →
-            </a>
+            <div className="mt-8">
+              <Link
+                href="/register"
+                className="inline-flex px-6 py-3.5 rounded-full font-semibold"
+                style={{
+                  background: "#C59A4D",
+                  color: "#FFFFFF",
+                }}
+              >
+                Inscrire mon commerce →
+              </Link>
+            </div>
           </div>
+
+          <div
+            className="min-h-[330px]"
+            style={{
+              background:
+                "url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=85') center/cover no-repeat",
+            }}
+          />
+        </div>
+      </section>
+
+      {/* RESULTS */}
+      <section
+        className="py-20"
+        style={{
+          background: "#FFFDF9",
+          borderTop: "1px solid #E8E0D5",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-9">
+            <div>
+              <p
+                className="uppercase tracking-[0.2em] text-xs font-semibold mb-3"
+                style={{ color: "#A47632" }}
+              >
+                Annuaire
+              </p>
+
+              <h2
+                className="font-display font-semibold"
+                style={{
+                  fontSize: "clamp(2rem, 4vw, 3.3rem)",
+                  letterSpacing: "-0.035em",
+                }}
+              >
+                Les professionnels
+              </h2>
+            </div>
+
+            {!loading && (
+              <p className="text-sm" style={{ color: "#83766B" }}>
+                {vendors.length} résultat
+                {vendors.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+
+          {loading ? (
+            <div
+              className="rounded-2xl p-10 text-center"
+              style={{ background: "#F7F3EC" }}
+            >
+              Chargement des commerces...
+            </div>
+          ) : vendors.length === 0 ? (
+            <div
+              className="rounded-[24px] p-10 md:p-14 text-center"
+              style={{
+                background: "#F7F3EC",
+                border: "1px solid #E8DFD3",
+              }}
+            >
+              <div className="text-5xl mb-5">☕</div>
+
+              <h3 className="font-display font-semibold text-2xl">
+                Aucun commerce trouvé
+              </h3>
+
+              <p
+                className="mt-3 max-w-lg mx-auto"
+                style={{ color: "#7A6D62" }}
+              >
+                Aucun professionnel ne correspond encore à cette recherche.
+                Essayez une autre ville ou une autre catégorie.
+              </p>
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-6 px-5 py-3 rounded-full font-semibold"
+                style={{
+                  background: "#21150F",
+                  color: "#FFFFFF",
+                }}
+              >
+                Voir tous les commerces
+              </button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {vendors.map((vendor) => (
+                <VendorCard key={vendor.id} vendor={vendor} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* MAP */}
+      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20">
+        <div className="mb-8">
+          <p
+            className="uppercase tracking-[0.2em] text-xs font-semibold mb-3"
+            style={{ color: "#A47632" }}
+          >
+            Localisation
+          </p>
+
+          <h2
+            className="font-display font-semibold"
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3.3rem)",
+              letterSpacing: "-0.035em",
+            }}
+          >
+            Le café près de chez vous
+          </h2>
+
+          <p className="mt-3" style={{ color: "#74685E" }}>
+            Retrouvez sur la carte les commerces ayant renseigné leur
+            localisation.
+          </p>
+        </div>
+
+        <div
+          className="rounded-[24px] overflow-hidden"
+          style={{
+            border: "1px solid #DED5C8",
+            boxShadow: "0 14px 50px rgba(39,26,17,0.08)",
+          }}
+        >
+          <MapView vendors={vendors} height={480} />
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="px-6 md:px-12 pb-20">
+        <div
+          className="max-w-7xl mx-auto rounded-[28px] px-7 md:px-14 py-12 md:py-16 flex flex-col lg:flex-row lg:items-center justify-between gap-8"
+          style={{
+            background: "#B58A42",
+            color: "#FFFFFF",
+          }}
+        >
+          <div className="max-w-2xl">
+            <p className="text-sm uppercase tracking-[0.18em] font-semibold opacity-80">
+              Annuaire Café CI
+            </p>
+
+            <h2 className="font-display font-semibold text-3xl md:text-5xl mt-3">
+              Votre commerce mérite d’être découvert.
+            </h2>
+
+            <p className="mt-4 opacity-90">
+              Rejoignez l’annuaire des professionnels du café en Côte
+              d’Ivoire.
+            </p>
+          </div>
+
+          <Link
+            href="/register"
+            className="inline-flex justify-center px-7 py-4 rounded-full font-semibold whitespace-nowrap"
+            style={{
+              background: "#FFFFFF",
+              color: "#2A1B12",
+            }}
+          >
+            Créer ma fiche gratuitement
+          </Link>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-white/10 bg-[#030303]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-12 md:flex-row md:items-center md:justify-between md:px-12">
+      <footer
+        className="px-6 md:px-12 py-10"
+        style={{
+          background: "#17100C",
+          color: "#D7CBC0",
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-5">
           <div>
-            <div className="font-display text-xl font-semibold">
+            <div className="font-semibold text-white">
               ☕ Annuaire Café CI
             </div>
 
-            <p className="mt-2 text-sm text-white/40">
-              L'annuaire du café ivoirien.
+            <p className="text-sm mt-2">
+              Le rendez-vous des professionnels du café en Côte d’Ivoire.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-6 text-sm text-white/50">
-            <a href="/" className="transition hover:text-white">
-              Accueil
-            </a>
+          <div className="flex gap-6 text-sm">
+            <Link href="/login" className="hover:text-white">
+              Connexion
+            </Link>
 
-            <a
-              href="#commerces"
-              className="transition hover:text-white"
-            >
-              Commerces
-            </a>
-
-            <a
-              href="/register"
-              className="transition hover:text-white"
-            >
-              Professionnels
-            </a>
+            <Link href="/register" className="hover:text-white">
+              Inscrire mon commerce
+            </Link>
           </div>
-        </div>
-
-        <div className="border-t border-white/5 px-6 py-5 text-center text-xs text-white/30">
-          © {new Date().getFullYear()} Annuaire Café CI — Tous droits réservés.
         </div>
       </footer>
     </main>
