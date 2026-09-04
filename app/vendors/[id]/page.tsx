@@ -25,7 +25,7 @@ function catColor(category: string) {
 }
 
 function waLink(phone: string) {
-  const digits = String(phone || "").replace(/[^\d]/g, "");
+  const digits = phone.replace(/[^\d]/g, "");
   const withCountry = digits.startsWith("225")
     ? digits
     : `225${digits.replace(/^0+/, "")}`;
@@ -50,6 +50,8 @@ export default function VendorDetailPage() {
   const [reviewError, setReviewError] = useState("");
 
   function load() {
+    setLoading(true);
+
     fetch(`/api/vendors/${id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setVendor)
@@ -100,15 +102,12 @@ export default function VendorDetailPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "#F7F4EF" }}
+        style={{ background: "#FAFAFA" }}
       >
         <div className="text-center">
           <div className="text-4xl mb-3">☕</div>
-          <p
-            className="text-sm font-mono"
-            style={{ color: "#78716C" }}
-          >
-            Chargement de la fiche...
+          <p className="text-sm" style={{ color: "#71717A" }}>
+            Chargement du commerce...
           </p>
         </div>
       </div>
@@ -118,56 +117,43 @@ export default function VendorDetailPage() {
   if (!vendor) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center px-6"
-        style={{ background: "#F7F4EF" }}
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "#FAFAFA" }}
       >
-        <div
-          className="bg-white rounded-3xl p-8 text-center max-w-md w-full"
-          style={{ border: "1px solid #E7E5E4" }}
-        >
-          <div className="text-5xl">☕</div>
+        <div className="text-center px-6">
+          <div className="text-5xl mb-4">☕</div>
 
           <h1
-            className="font-display font-semibold text-2xl mt-4"
+            className="text-xl font-bold mb-2"
             style={{ color: "#18181B" }}
           >
             Fiche introuvable
           </h1>
 
-          <p
-            className="text-sm mt-2"
-            style={{ color: "#78716C" }}
-          >
-            Cette fiche commerciale n'existe plus ou n'est pas disponible.
+          <p className="text-sm mb-5" style={{ color: "#71717A" }}>
+            Ce commerce n'existe plus ou n'est pas disponible.
           </p>
 
           <Link
             href="/"
-            className="btn-primary inline-block mt-6 px-5 py-3 rounded-full text-sm font-medium"
+            className="inline-flex px-5 py-3 rounded-full text-sm font-semibold text-white"
+            style={{ background: "#18181B" }}
           >
-            Retour à l'annuaire
+            ← Retour à l'annuaire
           </Link>
         </div>
       </div>
     );
   }
 
-  const reviews = Array.isArray(vendor.reviews)
-    ? vendor.reviews
-    : [];
-
-  const photos = Array.isArray(vendor.photos)
-    ? vendor.photos
-    : [];
-
-  const products = Array.isArray(vendor.products)
-    ? vendor.products
-    : [];
+  const reviews = vendor.reviews || [];
+  const photos = vendor.photos || [];
+  const products = vendor.products || [];
 
   const avgRating =
     reviews.length > 0
       ? reviews.reduce(
-          (sum: number, review: any) => sum + Number(review.rating || 0),
+          (sum: number, review: any) => sum + review.rating,
           0
         ) / reviews.length
       : 0;
@@ -184,458 +170,143 @@ export default function VendorDetailPage() {
     <div
       className="min-h-screen"
       style={{
-        background: "#F7F4EF",
+        background: "#F7F7F5",
         color: "#18181B",
       }}
     >
-      {/* ================= NAVIGATION ================= */}
-
+      {/* NAVIGATION */}
       <nav
-        className="sticky top-0 z-40 px-5 md:px-10 py-4"
-        style={{
-          background: "rgba(255,255,255,0.94)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid #E7E5E4",
-        }}
+        className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b"
+        style={{ borderColor: "#E4E4E7" }}
       >
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
           <Link
             href="/"
-            className="font-display font-semibold text-base md:text-lg"
+            className="flex items-center gap-2 font-bold"
+            style={{ color: "#18181B" }}
           >
-            ☕ Annuaire Café CI
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+              style={{
+                background: "#18181B",
+              }}
+            >
+              ☕
+            </span>
+
+            <span className="hidden sm:block">
+              Annuaire Café CI
+            </span>
           </Link>
 
           <Link
             href="/"
-            className="text-xs md:text-sm font-medium px-4 py-2 rounded-full"
+            className="text-sm font-semibold px-4 py-2 rounded-full"
             style={{
-              background: "#F5F5F4",
-              color: "#44403C",
+              background: "#F4F4F5",
+              color: "#18181B",
             }}
           >
-            ← Annuaire
+            ← Retour
           </Link>
         </div>
       </nav>
 
-      {/* ================= HERO ================= */}
-
+      {/* HERO IMAGE */}
       <section className="relative">
         <div
-          className="w-full overflow-hidden"
+          className="w-full h-[280px] md:h-[420px]"
           style={{
-            height: cover
-              ? "clamp(260px, 42vw, 480px)"
-              : "260px",
             background: accent,
           }}
         >
           {cover ? (
-            <>
-              <img
-                src={cover}
-                alt={vendor.name}
-                className="w-full h-full object-cover"
-              />
-
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.35))",
-                }}
-              />
-            </>
+            <img
+              src={cover}
+              alt={vendor.name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div
-                className="text-8xl opacity-80"
-                aria-hidden="true"
-              >
-                ☕
+              <div className="text-center text-white">
+                <div className="text-7xl mb-3">☕</div>
+                <div className="text-sm opacity-80">
+                  Annuaire Café CI
+                </div>
               </div>
             </div>
           )}
         </div>
+
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.55))",
+          }}
+        />
+
+        <div className="absolute bottom-5 left-0 right-0">
+          <div className="max-w-6xl mx-auto px-5 md:px-8">
+            <div className="flex flex-wrap gap-2">
+              <span
+                className="px-3 py-1.5 rounded-full text-xs font-bold bg-white"
+                style={{ color: accent }}
+              >
+                {catLabel(vendor.category)}
+              </span>
+
+              {isFeatured && (
+                <span
+                  className="px-3 py-1.5 rounded-full text-xs font-bold"
+                  style={{
+                    background: "#F59E0B",
+                    color: "#fff",
+                  }}
+                >
+                  ⭐ Commerce en vedette
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* ================= CONTENU ================= */}
-
-      <main className="px-4 md:px-8 pb-16">
-        <div className="max-w-5xl mx-auto">
-
-          {/* ================= IDENTITÉ ================= */}
-
-          <section
-            className="relative -mt-16 md:-mt-20 rounded-3xl p-5 md:p-8"
-            style={{
-              background: "#FFFFFF",
-              border: "1px solid #E7E5E4",
-              boxShadow:
-                "0 24px 60px -30px rgba(24,24,27,0.35)",
-            }}
-          >
-            <div className="flex flex-col md:flex-row md:items-start gap-5">
-
-              {/* LOGO */}
-
-              <div
-                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center text-4xl md:text-5xl font-bold text-white shrink-0"
-                style={{
-                  background: accent,
-                  boxShadow:
-                    "0 12px 24px -12px rgba(0,0,0,0.35)",
-                }}
-              >
-                {vendor.name?.charAt(0)?.toUpperCase() || "?"}
-              </div>
-
-              {/* INFORMATIONS */}
-
-              <div className="flex-1 min-w-0">
-
-                <div className="flex flex-wrap gap-2">
-
-                  <span
-                    className="text-[10px] md:text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full"
-                    style={{
-                      color: accent,
-                      background: `${accent}14`,
-                    }}
-                  >
-                    {catLabel(vendor.category)}
-                  </span>
-
-                  {isFeatured && (
-                    <span
-                      className="text-[10px] md:text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full"
-                      style={{
-                        color: "#92400E",
-                        background: "#FEF3C7",
-                      }}
-                    >
-                      ⭐ En vedette
-                    </span>
-                  )}
-
+      {/* CONTENU PRINCIPAL */}
+      <main className="max-w-6xl mx-auto px-5 md:px-8 pb-16">
+        <div className="grid lg:grid-cols-[1fr_360px] gap-8 -mt-8 relative z-10">
+          {/* COLONNE PRINCIPALE */}
+          <div className="space-y-6">
+            {/* IDENTITÉ */}
+            <section
+              className="bg-white rounded-3xl p-6 md:p-8"
+              style={{
+                border: "1px solid #E4E4E7",
+                boxShadow:
+                  "0 20px 45px -30px rgba(24,24,27,0.35)",
+              }}
+            >
+              <div className="flex items-start gap-4">
+                <div
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-2xl md:text-3xl font-bold text-white shrink-0"
+                  style={{
+                    background: accent,
+                  }}
+                >
+                  {vendor.name?.charAt(0)?.toUpperCase() || "?"}
                 </div>
 
-                <h1
-                  className="font-display font-bold text-3xl md:text-4xl mt-3 leading-tight"
-                  style={{ color: "#18181B" }}
-                >
-                  {vendor.name}
-                </h1>
-
-                <p
-                  className="text-sm md:text-base mt-2"
-                  style={{ color: "#78716C" }}
-                >
-                  📍{" "}
-                  {vendor.neighborhood
-                    ? `${vendor.neighborhood}, `
-                    : ""}
-                  {vendor.city}
-                </p>
-
-                {/* NOTE */}
-
-                <div className="mt-4 flex items-center gap-3 flex-wrap">
-
-                  {reviews.length > 0 ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <StarRating
-                          value={avgRating}
-                          size={20}
-                        />
-
-                        <strong
-                          className="text-base"
-                          style={{ color: "#18181B" }}
-                        >
-                          {avgRating.toFixed(1)}
-                        </strong>
-                      </div>
-
-                      <span
-                        className="text-sm"
-                        style={{ color: "#78716C" }}
-                      >
-                        {reviews.length}{" "}
-                        {reviews.length > 1
-                          ? "avis"
-                          : "avis"}
-                      </span>
-                    </>
-                  ) : (
-                    <span
-                      className="text-sm"
-                      style={{ color: "#78716C" }}
-                    >
-                      Aucun avis pour le moment
-                    </span>
-                  )}
-
-                </div>
-
-              </div>
-            </div>
-
-            {/* DESCRIPTION */}
-
-            {vendor.description && (
-              <div
-                className="mt-6 pt-6"
-                style={{
-                  borderTop: "1px solid #E7E5E4",
-                }}
-              >
-                <p
-                  className="text-sm md:text-base leading-7"
-                  style={{ color: "#44403C" }}
-                >
-                  {vendor.description}
-                </p>
-              </div>
-            )}
-
-            {/* ACTIONS */}
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
-
-              <a
-                href={`tel:${vendor.phone}`}
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-transform hover:-translate-y-0.5"
-                style={{
-                  border: "1px solid #D6D3D1",
-                  color: "#18181B",
-                  background: "#FFFFFF",
-                }}
-              >
-                📞 Appeler
-              </a>
-
-              <a
-                href={waLink(vendor.phone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-transform hover:-translate-y-0.5"
-                style={{
-                  background: "#18181B",
-                  color: "#FFFFFF",
-                }}
-              >
-                💬 WhatsApp
-              </a>
-
-              {vendor.latitude != null &&
-                vendor.longitude != null && (
-                  <a
-                    href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="col-span-2 md:col-span-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-transform hover:-translate-y-0.5"
-                    style={{
-                      background: accent,
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    🗺️ Itinéraire
-                  </a>
-                )}
-
-            </div>
-
-            {vendor.priceInfo && (
-              <div
-                className="mt-4 rounded-2xl px-4 py-3 text-center text-sm font-medium"
-                style={{
-                  background: "#FAFAF9",
-                  color: "#57534E",
-                  border: "1px solid #E7E5E4",
-                }}
-              >
-                💰 {vendor.priceInfo}
-              </div>
-            )}
-
-          </section>
-
-          {/* ================= PRODUITS ================= */}
-
-          {products.length > 0 && (
-            <section className="mt-10">
-
-              <div className="flex items-end justify-between mb-5">
-
-                <div>
-                  <p
-                    className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                    style={{ color: accent }}
-                  >
-                    Catalogue
-                  </p>
-
-                  <h2
-                    className="font-display font-bold text-2xl md:text-3xl mt-1"
+                <div className="min-w-0 flex-1">
+                  <h1
+                    className="text-2xl md:text-4xl font-black leading-tight"
                     style={{ color: "#18181B" }}
                   >
-                    Nos produits
-                  </h2>
-                </div>
-
-                <span
-                  className="text-xs font-mono"
-                  style={{ color: "#78716C" }}
-                >
-                  {products.length} produit
-                  {products.length !== 1 ? "s" : ""}
-                </span>
-
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-
-                {products.map((p: any) => (
-                  <article
-                    key={p.id}
-                    className="overflow-hidden rounded-2xl transition-transform hover:-translate-y-1"
-                    style={{
-                      background: "#FFFFFF",
-                      border: "1px solid #E7E5E4",
-                      boxShadow:
-                        "0 10px 30px -24px rgba(24,24,27,0.45)",
-                    }}
-                  >
-
-                    <div
-                      className="relative w-full"
-                      style={{
-                        aspectRatio: "1 / 1",
-                        background: "#F5F5F4",
-                      }}
-                    >
-                      {p.photoUrl ? (
-                        <img
-                          src={p.photoUrl}
-                          alt={p.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-5xl">
-                          ☕
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-4">
-
-                      <h3
-                        className="font-semibold text-sm md:text-base leading-snug"
-                        style={{ color: "#18181B" }}
-                      >
-                        {p.name}
-                      </h3>
-
-                      {p.price && (
-                        <p
-                          className="font-bold text-sm mt-2"
-                          style={{ color: accent }}
-                        >
-                          {p.price}
-                        </p>
-                      )}
-
-                      {p.description && (
-                        <p
-                          className="text-xs md:text-sm mt-2 leading-relaxed line-clamp-3"
-                          style={{ color: "#78716C" }}
-                        >
-                          {p.description}
-                        </p>
-                      )}
-
-                    </div>
-                  </article>
-                ))}
-
-              </div>
-            </section>
-          )}
-
-          {/* ================= GALERIE ================= */}
-
-          {photos.length > 1 && (
-            <section className="mt-12">
-
-              <div className="mb-5">
-                <p
-                  className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                  style={{ color: accent }}
-                >
-                  Galerie
-                </p>
-
-                <h2
-                  className="font-display font-bold text-2xl md:text-3xl mt-1"
-                  style={{ color: "#18181B" }}
-                >
-                  Découvrez le commerce
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-
-                {photos.slice(1).map((p: any, index: number) => (
-                  <div
-                    key={p.id || index}
-                    className="overflow-hidden rounded-2xl"
-                    style={{
-                      background: "#E7E5E4",
-                      aspectRatio:
-                        index === 0
-                          ? "16 / 10"
-                          : "1 / 1",
-                    }}
-                  >
-                    <img
-                      src={p.url}
-                      alt={`${vendor.name} - photo ${index + 2}`}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-                ))}
-
-              </div>
-            </section>
-          )}
-
-          {/* ================= LOCALISATION ================= */}
-
-          {vendor.latitude != null &&
-            vendor.longitude != null && (
-              <section className="mt-12">
-
-                <div className="mb-5">
-                  <p
-                    className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                    style={{ color: accent }}
-                  >
-                    Localisation
-                  </p>
-
-                  <h2
-                    className="font-display font-bold text-2xl md:text-3xl mt-1"
-                    style={{ color: "#18181B" }}
-                  >
-                    Où nous trouver
-                  </h2>
+                    {vendor.name}
+                  </h1>
 
                   <p
-                    className="text-sm mt-2"
-                    style={{ color: "#78716C" }}
+                    className="mt-2 text-sm md:text-base"
+                    style={{ color: "#71717A" }}
                   >
                     📍{" "}
                     {vendor.neighborhood
@@ -643,80 +314,331 @@ export default function VendorDetailPage() {
                       : ""}
                     {vendor.city}
                   </p>
-                </div>
 
+                  {reviews.length > 0 && (
+                    <div className="flex items-center gap-2 mt-4">
+                      <StarRating value={avgRating} size={20} />
+
+                      <span
+                        className="font-bold"
+                        style={{ color: "#18181B" }}
+                      >
+                        {avgRating.toFixed(1)}
+                      </span>
+
+                      <span
+                        className="text-sm"
+                        style={{ color: "#71717A" }}
+                      >
+                        · {reviews.length} avis
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {vendor.description && (
                 <div
-                  className="overflow-hidden rounded-3xl"
+                  className="mt-7 pt-6 border-t"
+                  style={{ borderColor: "#F4F4F5" }}
+                >
+                  <h2 className="font-bold text-lg mb-2">
+                    À propos
+                  </h2>
+
+                  <p
+                    className="text-sm md:text-base leading-7"
+                    style={{ color: "#52525B" }}
+                  >
+                    {vendor.description}
+                  </p>
+                </div>
+              )}
+
+              {vendor.priceInfo && (
+                <div
+                  className="mt-5 rounded-2xl px-4 py-4 flex items-center gap-3"
                   style={{
-                    border: "1px solid #E7E5E4",
-                    boxShadow:
-                      "0 20px 40px -30px rgba(24,24,27,0.4)",
+                    background: "#FAF7F3",
+                    border: "1px solid #EADFD5",
                   }}
                 >
-                  <MapView
-                    vendors={[vendor]}
-                    center={[
-                      vendor.latitude,
-                      vendor.longitude,
-                    ]}
-                    zoom={14}
-                    height={320}
-                  />
+                  <span className="text-2xl">💰</span>
+
+                  <div>
+                    <div
+                      className="text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: "#71717A" }}
+                    >
+                      Informations tarifaires
+                    </div>
+
+                    <div
+                      className="font-bold mt-1"
+                      style={{ color: "#18181B" }}
+                    >
+                      {vendor.priceInfo}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* PRODUITS */}
+            {products.length > 0 && (
+              <section
+                className="bg-white rounded-3xl p-6 md:p-8"
+                style={{
+                  border: "1px solid #E4E4E7",
+                }}
+              >
+                <div className="flex items-end justify-between mb-6">
+                  <div>
+                    <p
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: accent }}
+                    >
+                      Découvrez
+                    </p>
+
+                    <h2 className="text-2xl font-black mt-1">
+                      Catalogue
+                    </h2>
+                  </div>
+
+                  <span
+                    className="text-sm font-semibold px-3 py-1.5 rounded-full"
+                    style={{
+                      background: "#F4F4F5",
+                      color: "#52525B",
+                    }}
+                  >
+                    {products.length} produit
+                    {products.length > 1 ? "s" : ""}
+                  </span>
                 </div>
 
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {products.map((p: any) => (
+                    <div
+                      key={p.id}
+                      className="overflow-hidden rounded-2xl group"
+                      style={{
+                        border: "1px solid #E4E4E7",
+                        background: "#fff",
+                      }}
+                    >
+                      <div
+                        className="h-44 overflow-hidden flex items-center justify-center"
+                        style={{
+                          background: "#F4F4F5",
+                        }}
+                      >
+                        {p.photoUrl ? (
+                          <img
+                            src={p.photoUrl}
+                            alt={p.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="text-5xl">☕</span>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3
+                            className="font-bold text-base"
+                            style={{ color: "#18181B" }}
+                          >
+                            {p.name}
+                          </h3>
+
+                          {p.price && (
+                            <span
+                              className="text-sm font-black whitespace-nowrap"
+                              style={{ color: accent }}
+                            >
+                              {p.price}
+                            </span>
+                          )}
+                        </div>
+
+                        {p.description && (
+                          <p
+                            className="text-sm mt-2 leading-5"
+                            style={{ color: "#71717A" }}
+                          >
+                            {p.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </section>
             )}
 
-          {/* ================= AVIS ================= */}
-
-          <section className="mt-12">
-
-            <div className="mb-5">
-              <p
-                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                style={{ color: accent }}
+            {/* GALERIE */}
+            {photos.length > 1 && (
+              <section
+                className="bg-white rounded-3xl p-6 md:p-8"
+                style={{
+                  border: "1px solid #E4E4E7",
+                }}
               >
-                Avis clients
-              </p>
+                <div className="mb-6">
+                  <p
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: accent }}
+                  >
+                    En images
+                  </p>
 
-              <h2
-                className="font-display font-bold text-2xl md:text-3xl mt-1"
-                style={{ color: "#18181B" }}
-              >
-                Votre expérience compte
-              </h2>
-            </div>
+                  <h2 className="text-2xl font-black mt-1">
+                    Galerie
+                  </h2>
+                </div>
 
-            {/* FORMULAIRE */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {photos.slice(1).map((p: any, index: number) => (
+                    <div
+                      key={p.id}
+                      className={`overflow-hidden rounded-2xl ${
+                        index === 0
+                          ? "md:col-span-2 md:row-span-2"
+                          : ""
+                      }`}
+                      style={{
+                        minHeight: index === 0 ? "250px" : "150px",
+                        background: "#F4F4F5",
+                      }}
+                    >
+                      <img
+                        src={p.url}
+                        alt={`${vendor.name} - photo ${index + 2}`}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <form
-              onSubmit={submitReview}
-              className="rounded-3xl p-5 md:p-6"
+            {/* LOCALISATION */}
+            {vendor.latitude != null &&
+              vendor.longitude != null && (
+                <section
+                  className="bg-white rounded-3xl p-6 md:p-8"
+                  style={{
+                    border: "1px solid #E4E4E7",
+                  }}
+                >
+                  <div className="mb-6">
+                    <p
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: accent }}
+                    >
+                      Où nous trouver
+                    </p>
+
+                    <h2 className="text-2xl font-black mt-1">
+                      Localisation
+                    </h2>
+
+                    <p
+                      className="text-sm mt-2"
+                      style={{ color: "#71717A" }}
+                    >
+                      📍{" "}
+                      {vendor.neighborhood
+                        ? `${vendor.neighborhood}, `
+                        : ""}
+                      {vendor.city}
+                    </p>
+                  </div>
+
+                  <div
+                    className="overflow-hidden rounded-2xl"
+                    style={{
+                      border: "1px solid #E4E4E7",
+                    }}
+                  >
+                    <MapView
+                      vendors={[vendor]}
+                      center={[
+                        vendor.latitude,
+                        vendor.longitude,
+                      ]}
+                      zoom={14}
+                      height={320}
+                    />
+                  </div>
+
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${vendor.latitude},${vendor.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold"
+                    style={{
+                      background: "#F4F4F5",
+                      color: "#18181B",
+                    }}
+                  >
+                    🗺️ Ouvrir dans Google Maps
+                  </a>
+                </section>
+              )}
+
+            {/* AVIS */}
+            <section
+              className="bg-white rounded-3xl p-6 md:p-8"
               style={{
-                background: "#FFFFFF",
-                border: "1px solid #E7E5E4",
-                boxShadow:
-                  "0 16px 40px -30px rgba(24,24,27,0.35)",
+                border: "1px solid #E4E4E7",
               }}
             >
+              <div className="mb-6">
+                <p
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: accent }}
+                >
+                  Expériences clients
+                </p>
 
-              <h3
-                className="font-semibold text-base"
-                style={{ color: "#18181B" }}
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <h2 className="text-2xl font-black mt-1">
+                    Avis clients
+                  </h2>
+
+                  {reviews.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <StarRating
+                        value={avgRating}
+                        size={18}
+                      />
+
+                      <span className="font-bold">
+                        {avgRating.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* FORMULAIRE */}
+              <form
+                onSubmit={submitReview}
+                className="rounded-2xl p-5 mb-6"
+                style={{
+                  background: "#FAFAFA",
+                  border: "1px solid #E4E4E7",
+                }}
               >
-                ⭐ Laisser un avis
-              </h3>
+                <h3 className="font-bold mb-4">
+                  Partagez votre expérience
+                </h3>
 
-              <div className="grid md:grid-cols-2 gap-4 mt-4">
-
-                <div>
-                  <label
-                    className="block text-xs font-medium mb-2"
-                    style={{ color: "#57534E" }}
-                  >
-                    Votre nom
-                  </label>
-
+                <div className="grid md:grid-cols-2 gap-4">
                   <input
                     value={reviewForm.authorName}
                     onChange={(e) =>
@@ -725,54 +647,34 @@ export default function VendorDetailPage() {
                         authorName: e.target.value,
                       })
                     }
-                    placeholder="Ex. Mamadou"
+                    placeholder="Votre nom"
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none"
                     style={{
-                      border: "1px solid #D6D3D1",
-                      background: "#FAFAF9",
+                      border: "1px solid #D4D4D8",
+                      background: "#fff",
                     }}
                   />
-                </div>
-
-                <div>
-                  <label
-                    className="block text-xs font-medium mb-2"
-                    style={{ color: "#57534E" }}
-                  >
-                    Votre note
-                  </label>
 
                   <div
-                    className="h-[46px] px-4 rounded-xl flex items-center"
+                    className="flex items-center justify-center rounded-xl px-4"
                     style={{
-                      border: "1px solid #D6D3D1",
-                      background: "#FAFAF9",
+                      background: "#fff",
+                      border: "1px solid #D4D4D8",
                     }}
                   >
                     <StarRating
                       value={reviewForm.rating}
                       interactive
                       size={22}
-                      onChange={(v) =>
+                      onChange={(value) =>
                         setReviewForm({
                           ...reviewForm,
-                          rating: v,
+                          rating: value,
                         })
                       }
                     />
                   </div>
                 </div>
-
-              </div>
-
-              <div className="mt-4">
-
-                <label
-                  className="block text-xs font-medium mb-2"
-                  style={{ color: "#57534E" }}
-                >
-                  Votre commentaire
-                </label>
 
                 <textarea
                   value={reviewForm.comment}
@@ -782,144 +684,283 @@ export default function VendorDetailPage() {
                       comment: e.target.value,
                     })
                   }
-                  placeholder="Partagez votre expérience..."
+                  placeholder="Votre avis (optionnel)"
                   rows={4}
-                  className="w-full px-4 py-3 rounded-xl text-sm resize-none outline-none"
+                  className="w-full mt-4 px-4 py-3 rounded-xl text-sm outline-none resize-none"
                   style={{
-                    border: "1px solid #D6D3D1",
-                    background: "#FAFAF9",
+                    border: "1px solid #D4D4D8",
+                    background: "#fff",
                   }}
                 />
 
-              </div>
+                {reviewError && (
+                  <p
+                    className="text-sm mt-3"
+                    style={{ color: "#DC2626" }}
+                  >
+                    {reviewError}
+                  </p>
+                )}
 
-              {reviewError && (
-                <p
-                  className="text-xs mt-3"
-                  style={{ color: "#DC2626" }}
-                >
-                  {reviewError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="mt-4 px-6 py-3 rounded-full text-sm font-semibold"
-                style={{
-                  background: submitting
-                    ? "#A8A29E"
-                    : "#18181B",
-                  color: "#FFFFFF",
-                  cursor: submitting
-                    ? "not-allowed"
-                    : "pointer",
-                }}
-              >
-                {submitting
-                  ? "Publication..."
-                  : "Publier mon avis"}
-              </button>
-
-            </form>
-
-            {/* LISTE DES AVIS */}
-
-            <div className="mt-5 flex flex-col gap-3">
-
-              {reviews.length === 0 ? (
-                <div
-                  className="rounded-3xl p-8 text-center"
+                <button
+                  disabled={submitting}
+                  className="mt-4 px-5 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                   style={{
-                    background: "#FFFFFF",
-                    border: "1px solid #E7E5E4",
+                    background: accent,
                   }}
                 >
-                  <div className="text-4xl">⭐</div>
+                  {submitting
+                    ? "Publication..."
+                    : "⭐ Publier mon avis"}
+                </button>
+              </form>
 
-                  <p
-                    className="font-semibold mt-3"
-                    style={{ color: "#18181B" }}
-                  >
-                    Soyez le premier à laisser un avis
-                  </p>
-
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "#78716C" }}
-                  >
-                    Votre expérience peut aider les prochains clients.
-                  </p>
-                </div>
-              ) : (
-                reviews.map((review: any) => (
-                  <article
-                    key={review.id}
-                    className="rounded-2xl p-5"
+              {/* LISTE DES AVIS */}
+              <div className="space-y-4">
+                {reviews.length === 0 && (
+                  <div
+                    className="text-center py-8 rounded-2xl"
                     style={{
-                      background: "#FFFFFF",
-                      border: "1px solid #E7E5E4",
+                      background: "#FAFAFA",
                     }}
                   >
+                    <div className="text-3xl mb-2">💬</div>
 
-                    <div className="flex items-start justify-between gap-4">
+                    <p
+                      className="text-sm"
+                      style={{ color: "#71717A" }}
+                    >
+                      Aucun avis pour l'instant.
+                    </p>
 
-                      <div>
-                        <p
-                          className="font-semibold text-sm"
-                          style={{ color: "#18181B" }}
+                    <p
+                      className="text-sm mt-1"
+                      style={{ color: "#A1A1AA" }}
+                    >
+                      Soyez le premier à partager votre
+                      expérience.
+                    </p>
+                  </div>
+                )}
+
+                {reviews.map((r: any) => (
+                  <div
+                    key={r.id}
+                    className="rounded-2xl p-5"
+                    style={{
+                      background: "#FAFAFA",
+                      border: "1px solid #E4E4E7",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
+                          style={{
+                            background: accent,
+                          }}
                         >
-                          {review.authorName}
-                        </p>
+                          {r.authorName
+                            ?.charAt(0)
+                            ?.toUpperCase() || "?"}
+                        </div>
 
-                        <div className="mt-1">
-                          <StarRating
-                            value={review.rating}
-                            size={17}
-                          />
+                        <div>
+                          <div
+                            className="font-bold text-sm"
+                            style={{ color: "#18181B" }}
+                          >
+                            {r.authorName}
+                          </div>
+
+                          <div
+                            className="text-xs mt-1"
+                            style={{ color: "#A1A1AA" }}
+                          >
+                            Avis client
+                          </div>
                         </div>
                       </div>
 
+                      <StarRating value={r.rating} />
                     </div>
 
-                    {review.comment && (
+                    {r.comment && (
                       <p
-                        className="text-sm mt-4 leading-relaxed"
-                        style={{ color: "#44403C" }}
+                        className="text-sm leading-6 mt-4"
+                        style={{ color: "#52525B" }}
                       >
-                        “{review.comment}”
+                        “{r.comment}”
                       </p>
                     )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
 
-                  </article>
-                ))
-              )}
+          {/* COLONNE DROITE */}
+          <aside className="lg:sticky lg:top-24 h-fit">
+            <div
+              className="bg-white rounded-3xl p-5 md:p-6"
+              style={{
+                border: "1px solid #E4E4E7",
+                boxShadow:
+                  "0 20px 45px -30px rgba(24,24,27,0.3)",
+              }}
+            >
+              <div className="mb-5">
+                <p
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: accent }}
+                >
+                  Contacter
+                </p>
 
+                <h2 className="text-xl font-black mt-1">
+                  {vendor.name}
+                </h2>
+
+                <p
+                  className="text-sm mt-1"
+                  style={{ color: "#71717A" }}
+                >
+                  📍 {vendor.city}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <a
+                  href={`tel:${vendor.phone}`}
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-bold"
+                  style={{
+                    background: "#18181B",
+                    color: "#fff",
+                  }}
+                >
+                  📞 Appeler le commerce
+                </a>
+
+                <a
+                  href={waLink(vendor.phone)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-bold"
+                  style={{
+                    background: "#DCFCE7",
+                    color: "#166534",
+                  }}
+                >
+                  💬 Contacter sur WhatsApp
+                </a>
+              </div>
+
+              <div
+                className="mt-5 pt-5 border-t space-y-4"
+                style={{ borderColor: "#F4F4F5" }}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">📍</span>
+
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                      Localisation
+                    </div>
+
+                    <div className="text-sm font-semibold mt-1">
+                      {vendor.neighborhood
+                        ? `${vendor.neighborhood}, `
+                        : ""}
+                      {vendor.city}
+                    </div>
+                  </div>
+                </div>
+
+                {vendor.phone && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">📱</span>
+
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        Téléphone
+                      </div>
+
+                      <div className="text-sm font-semibold mt-1">
+                        {vendor.phone}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {reviews.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">⭐</span>
+
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        Satisfaction
+                      </div>
+
+                      <div className="text-sm font-semibold mt-1">
+                        {avgRating.toFixed(1)} / 5 ·{" "}
+                        {reviews.length} avis
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-
-          </section>
-
+          </aside>
         </div>
       </main>
 
-      {/* ================= FOOTER ================= */}
-
-      <footer
-        className="px-6 py-8 text-center"
+      {/* CTA FINAL */}
+      <section
+        className="py-14 px-5"
         style={{
           background: "#18181B",
-          color: "#FFFFFF",
         }}
       >
-        <div className="font-display font-semibold">
-          ☕ Annuaire Café CI
-        </div>
+        <div className="max-w-3xl mx-auto text-center text-white">
+          <div className="text-4xl mb-4">☕</div>
 
-        <p
-          className="text-xs mt-2"
-          style={{ color: "#A8A29E" }}
-        >
-          Découvrez les acteurs du café en Côte d'Ivoire.
+          <h2 className="text-2xl md:text-3xl font-black">
+            Découvrez d'autres commerces de café
+          </h2>
+
+          <p className="mt-3 text-sm md:text-base text-zinc-400">
+            Explorez les cafés, torréfacteurs, détaillants,
+            grossistes et commerces en ligne de Côte d'Ivoire.
+          </p>
+
+          <Link
+            href="/"
+            className="inline-flex mt-6 px-6 py-3.5 rounded-full text-sm font-bold"
+            style={{
+              background: "#fff",
+              color: "#18181B",
+            }}
+          >
+            Explorer l'annuaire →
+          </Link>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer
+        className="py-8 px-5 text-center"
+        style={{
+          background: "#111113",
+          color: "#71717A",
+        }}
+      >
+        <p className="text-sm">
+          © {new Date().getFullYear()} Annuaire Café CI
+        </p>
+
+        <p className="text-xs mt-2">
+          L'annuaire des professionnels du café en Côte
+          d'Ivoire.
         </p>
       </footer>
     </div>
