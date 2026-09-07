@@ -529,7 +529,43 @@ export default function HomeClient() {
           </div>
         </section>
       )}
+{/* ========================================================= */}
+{/* POURQUOI CHOISIR */}
+{/* ========================================================= */}
 
+<section
+  className="max-w-7xl mx-auto px-5 md:px-10 pb-20"
+>
+  <div
+    className="rounded-[30px] p-10 md:p-14 text-center"
+    style={{
+      background: "#FFFFFF",
+      border: "1px solid #E8DFD3",
+    }}
+  >
+    <h2
+      className="font-display font-semibold text-3xl md:text-5xl"
+      style={{
+        color: "#18120E",
+      }}
+    >
+      Pourquoi choisir Annuaire Café CI ?
+    </h2>
+
+    <p
+      className="mt-6 max-w-3xl mx-auto leading-relaxed"
+      style={{
+        color: "#74685E",
+        fontSize: "18px",
+      }}
+    >
+      Découvrez les meilleurs cafés, torréfacteurs,
+      fournisseurs et professionnels du café en Côte d’Ivoire.
+      Une plateforme moderne conçue pour connecter les amateurs
+      de café aux meilleures adresses.
+    </p>
+  </div>
+</section>
       {/* ========================================================= */}
       {/* PROFESSIONAL CTA */}
       {/* ========================================================= */}
