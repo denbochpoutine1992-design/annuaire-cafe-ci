@@ -354,7 +354,23 @@ export default function VendorDetailPage() {
                   </p>
                 </div>
               )}
+{vendor.expirationDate && (
+  <div
+    className="mt-5 rounded-2xl px-4 py-4"
+    style={{
+      background: "#FFF8E7",
+      border: "1px solid #EADFD5",
+    }}
+  >
+    <div className="font-bold">
+      📅 Date de péremption
+    </div>
 
+    <div className="mt-1">
+      {vendor.expirationDate}
+    </div>
+  </div>
+)}
               {vendor.priceInfo && (
                 <div
                   className="mt-5 rounded-2xl px-4 py-4 flex items-center gap-3"
