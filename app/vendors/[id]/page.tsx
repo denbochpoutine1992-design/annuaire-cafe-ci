@@ -530,11 +530,17 @@ export default function VendorDetailPage() {
                         background: "#F4F4F5",
                       }}
                     >
-                      <img
-                        src={p.url}
-                        alt={`${vendor.name} - photo ${index + 2}`}
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                      />
+                      <a
+  href={p.url}
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <img
+    src={p.url}
+    alt={`${vendor.name} - photo ${index + 2}`}
+    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+  />
+</a>
                     </div>
                   ))}
                 </div>
