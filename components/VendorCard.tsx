@@ -63,12 +63,18 @@ export default function VendorCard({ vendor }: { vendor: any }) {
       {/* Image */}
       <div className="relative h-52 overflow-hidden bg-zinc-100">
         {cover ? (
-          <img
-            src={cover}
-            alt={vendor.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
+  <a
+    href={cover}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <img
+      src={cover}
+      alt={vendor.name}
+      className="h-full w-full object-cover"
+    />
+  </a>
+) : (
           <div
             className="flex h-full w-full items-center justify-center text-6xl font-bold text-white"
             style={{ background: accent }}
