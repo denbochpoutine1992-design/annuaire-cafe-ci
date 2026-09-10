@@ -451,12 +451,19 @@ export default function VendorDetailPage() {
                         }}
                       >
                         {p.photoUrl ? (
-                          <img
-                            src={p.photoUrl}
-                            alt={p.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
+  <a
+    href={p.photoUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block w-full h-full"
+  >
+    <img
+      src={p.photoUrl}
+      alt={p.name}
+      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+  </a>
+) : (
                           <span className="text-5xl">☕</span>
                         )}
                       </div>
