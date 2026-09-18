@@ -277,7 +277,7 @@ export default function HomeClient() {
                     type="text"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="Rechercher un commerce, un café..."
+                    placeholder="Rechercher un café, une marque ou un produit..."
                     className="w-full bg-transparent py-4 outline-none text-sm md:text-base"
                     style={{
                       color: "#18120E",
