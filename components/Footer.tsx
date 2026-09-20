@@ -29,7 +29,7 @@ export default function Footer() {
             {/* Réseaux sociaux */}
             <div className="flex items-center gap-4 mt-5">
               <a
-                href="https://wa.me/22500749583050"
+                href="https://wa.me/2250749583050"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp"
