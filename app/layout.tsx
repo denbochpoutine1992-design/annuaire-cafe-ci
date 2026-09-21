@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Footer from "@/components/Footer";
-
+import { CartProvider } from "@/components/CartProvider";
 export const metadata: Metadata = {
   metadataBase: new URL("https://annuairecafe.com"),
   title: {
@@ -50,9 +50,16 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="font-body">
-        {children}
-        <Footer />
-      </body>
+
+<CartProvider>
+
+{children}
+
+<Footer />
+
+</CartProvider>
+
+</body>
     </html>
   );
 }
