@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 
 import StarRating from "@/components/StarRating";
+import AddToCartButton from "@/components/AddToCartButton";
 import { catLabel } from "@/lib/constants";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -508,6 +509,14 @@ export default function VendorDetailPage() {
                             {p.description}
                           </p>
                         )}
+                        <AddToCartButton
+  productId={p.id}
+  vendorId={vendor.id}
+  vendorName={vendor.name}
+  name={p.name}
+  price={Number(p.price)}
+  image={p.photoUrl}
+/>
                       </div>
                     </div>
                   ))}
