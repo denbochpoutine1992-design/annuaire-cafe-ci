@@ -1,16 +1,10 @@
-
 "use client";
 
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 
 export default function CartPage() {
-  const {
-    items,
-    total,
-    updateQuantity,
-    removeFromCart,
-  } = useCart();
+  const { items, total, updateQuantity, removeFromCart } = useCart();
 
   if (items.length === 0) {
     return (
@@ -148,4 +142,3 @@ export default function CartPage() {
     </main>
   );
 }
-```
