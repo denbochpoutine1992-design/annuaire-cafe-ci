@@ -1,4 +1,4 @@
-```tsx
+
 "use client";
 
 import { useCart } from "./CartProvider";
@@ -43,4 +43,3 @@ export default function AddToCartButton({
     </button>
   );
 }
-```
