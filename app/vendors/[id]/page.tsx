@@ -514,7 +514,7 @@ export default function VendorDetailPage() {
   vendorId={vendor.id}
   vendorName={vendor.name}
   name={p.name}
-  price={Number(p.price)}
+  price={parseInt(String(p.price).replace(/\D/g, ""), 10) || 0}
   image={p.photoUrl}
 />
                       </div>
