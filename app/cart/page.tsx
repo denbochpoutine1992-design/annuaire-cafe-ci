@@ -46,7 +46,7 @@ export default function CartPage() {
       <div className="space-y-4">
         {items.map((item) => (
           <div
-            key={`${item.vendorId}-${item.productId}`}
+            key={item.vendorId + "-" + item.productId}
             className="rounded-2xl border bg-white p-4 shadow-sm"
           >
             <div className="flex gap-4">
