@@ -56,7 +56,7 @@ export default function CartPage() {
                 <p className="mt-2">
                   Prix unitaire :{" "}
                   <strong>
-                    {item.price.toLocaleString("fr-FR")} FCFA
+                    {Number(item.price || 0).toLocaleString("fr-FR")} FCFA
                   </strong>
                 </p>
 
@@ -66,7 +66,7 @@ export default function CartPage() {
 
                 <p className="mt-2 text-lg font-bold">
                   Sous-total :{" "}
-                  {(item.price * item.quantity).toLocaleString("fr-FR")} FCFA
+                  {(Number(item.price || 0) * item.quantity).toLocaleString("fr-FR")} FCFA
                 </p>
 
                 <div className="mt-4 flex items-center gap-3">
@@ -124,7 +124,7 @@ export default function CartPage() {
               <span>Total</span>
 
               <span>
-                {total.toLocaleString("fr-FR")} FCFA
+                {Number(total || 0).toLocaleString("fr-FR")} FCFA
               </span>
             </div>
           </div>
