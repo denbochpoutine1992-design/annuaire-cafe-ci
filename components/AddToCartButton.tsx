@@ -28,7 +28,7 @@ export default function AddToCartButton({
       vendorId,
       vendorName,
       name,
-      price,
+      price: Number(price) || 0,
       image,
     });
   }
