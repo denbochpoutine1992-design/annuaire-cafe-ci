@@ -22,7 +22,9 @@ export default function AddToCartButton({
   const { addToCart } = useCart();
 
   function handleAdd() {
-    addToCart({
+  alert("Produit ajouté au panier");
+
+  addToCart({
       productId,
       vendorId,
       vendorName,
