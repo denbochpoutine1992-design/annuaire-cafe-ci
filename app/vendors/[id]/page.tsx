@@ -514,7 +514,11 @@ export default function VendorDetailPage() {
   vendorId={vendor.id}
   vendorName={vendor.name}
   name={p.name}
-  price={Number(p.price) || 0}
+  price={
+  typeof p.price === "number"
+    ? p.price
+    : Number(String(p.price).replace(/[^\d]/g, "")) || 0
+  }
   image={p.photoUrl}
 />
                       </div>
