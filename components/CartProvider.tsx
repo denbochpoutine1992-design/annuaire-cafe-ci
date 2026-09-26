@@ -75,36 +75,50 @@ export function CartProvider({
 }, [items, loaded]);
 
   function addToCart(
-    item: Omit<CartItem, "quantity">
-  ) {
-    setItems((current) => {
-      const existing = current.find(
-        (x) =>
-          x.productId === item.productId &&
-          x.vendorId === item.vendorId
+  item: Omit<CartItem, "quantity">
+) {
+  setItems((current) => {
+    const existing = current.find(
+      (x) =>
+        x.productId === item.productId &&
+        x.vendorId === item.vendorId
+    );
+
+    let nextItems: CartItem[];
+
+    if (existing) {
+      nextItems = current.map((x) =>
+        x.productId === item.productId &&
+        x.vendorId === item.vendorId
+          ? {
+              ...x,
+              ...item,
+              quantity: x.quantity + 1,
+            }
+          : x
       );
-
-      if (existing) {
-        return current.map((x) =>
-          x.productId === item.productId &&
-          x.vendorId === item.vendorId
-            ? {
-                ...x,
-                quantity: x.quantity + 1,
-              }
-            : x
-        );
-      }
-
-      return [
+    } else {
+      nextItems = [
         ...current,
         {
           ...item,
           quantity: 1,
         },
       ];
-    });
-  }
+    }
+
+    try {
+      localStorage.setItem(
+        "annuairecafe-cart",
+        JSON.stringify(nextItems)
+      );
+    } catch (error) {
+      console.error("Erreur sauvegarde panier :", error);
+    }
+
+    return nextItems;
+  });
+}
 
   function removeFromCart(
     productId: string,
