@@ -62,13 +62,17 @@ export function CartProvider({
   }, []);
 
   useEffect(() => {
-    if (!loaded) return;
+  if (!loaded) return;
 
+  try {
     localStorage.setItem(
       "annuairecafe-cart",
       JSON.stringify(items)
     );
-  }, [items, loaded]);
+  } catch (error) {
+    console.error("Erreur sauvegarde panier :", error);
+  }
+}, [items, loaded]);
 
   function addToCart(
     item: Omit<CartItem, "quantity">
