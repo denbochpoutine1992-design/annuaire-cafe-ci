@@ -29,7 +29,10 @@ export default function AddToCartButton({
       vendorId,
       vendorName,
       name,
-      price: Number(price) || 0,
+      price:
+  typeof price === "number"
+    ? price
+    : Number(String(price).replace(/[^\d]/g, "")) || 0,
       image,
     });
   }
