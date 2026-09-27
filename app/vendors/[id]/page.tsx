@@ -450,76 +450,102 @@ export default function VendorDetailPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   {products.map((p: any) => (
-                    <div
-                      key={p.id}
-                      className="overflow-hidden rounded-2xl group"
-                      style={{
-                        border: "1px solid #E4E4E7",
-                        background: "#fff",
-                      }}
-                    >
-                      <div
-                        className="h-44 overflow-hidden flex items-center justify-center"
-                        style={{
-                          background: "#F4F4F5",
-                        }}
-                      >
-                        {p.photoUrl ? (
-  <a
-    href={p.photoUrl}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="block w-full h-full"
+  <div
+    key={p.id}
+    className="group overflow-hidden rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+    style={{
+      border: "1px solid #E7DED4",
+      background: "#fff",
+    }}
   >
-    <img
-      src={p.photoUrl}
-      alt={p.name}
-      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-    />
-  </a>
-) : (
-                          <span className="text-5xl">☕</span>
-                        )}
-                      </div>
+    {/* PHOTO PRODUIT */}
+    <div
+      className="relative h-64 overflow-hidden flex items-center justify-center"
+      style={{
+        background: "#F7F2EC",
+      }}
+    >
+      {p.photoUrl ? (
+        <a
+          href={p.photoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full h-full"
+        >
+          <img
+            src={p.photoUrl}
+            alt={p.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        </a>
+      ) : (
+        <div className="text-center">
+          <div className="text-6xl">☕</div>
+          <p
+            className="mt-2 text-xs font-semibold"
+            style={{ color: "#8B735F" }}
+          >
+            Café
+          </p>
+        </div>
+      )}
 
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3
-                            className="font-bold text-base"
-                            style={{ color: "#18181B" }}
-                          >
-                            {p.name}
-                          </h3>
+      {/* BADGE */}
+      <div
+        className="absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-bold"
+        style={{
+          background: "#fff",
+          color: "#5A3825",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        }}
+      >
+        CAFÉ
+      </div>
+    </div>
 
-                          {p.price && (
-                            <span
-                              className="text-sm font-black whitespace-nowrap"
-                              style={{ color: accent }}
-                            >
-                              {p.price}
-                            </span>
-                          )}
-                        </div>
+    {/* INFORMATIONS */}
+    <div className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <h3
+          className="text-lg font-bold leading-tight"
+          style={{ color: "#241A14" }}
+        >
+          {p.name}
+        </h3>
 
-                        {p.description && (
-                          <p
-                            className="text-sm mt-2 leading-5"
-                            style={{ color: "#71717A" }}
-                          >
-                            {p.description}
-                          </p>
-                        )}
-                        <AddToCartButton
-  productId={p.id}
-  vendorId={vendor.id}
-  vendorName={vendor.name}
-  name={p.name}
-  price={Number(p.price) || 0}
-  image={p.photoUrl}
-/>
-                      </div>
-                    </div>
-                  ))}
+        {p.price && (
+          <span
+            className="whitespace-nowrap text-base font-black"
+            style={{ color: "#7C4A2D" }}
+          >
+            {p.price}
+          </span>
+        )}
+      </div>
+
+      {p.description && (
+        <p
+          className="mt-3 text-sm leading-6"
+          style={{ color: "#756B63" }}
+        >
+          {p.description}
+        </p>
+      )}
+
+      {/* PANIER */}
+      <div className="mt-5">
+        <AddToCartButton
+          productId={p.id}
+          vendorId={vendor.id}
+          vendorName={vendor.name}
+          name={p.name}
+          price={Number(p.price) || 0}
+          image={p.photoUrl}
+        />
+      </div>
+    </div>
+  </div>
+))}
                 </div>
               </section>
             )}
