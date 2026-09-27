@@ -514,34 +514,100 @@ export default function VendorDetailPage() {
         </h3>
 
         {p.price && (
-          <span
-            className="whitespace-nowrap text-base font-black"
-            style={{ color: "#7C4A2D" }}
+{products.map((p: any) => (
+  <div
+    key={p.id}
+    className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm"
+    style={{
+      border: "1px solid #E8E8E8",
+    }}
+  >
+    <div className="grid grid-cols-[42%_58%] min-h-[220px]">
+
+      {/* PHOTO */}
+      <div
+        className="flex items-center justify-center p-4"
+        style={{
+          background: "#F5F5F5",
+        }}
+      >
+        {p.photoUrl ? (
+          <a
+            href={p.photoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-full w-full items-center justify-center"
           >
-            {p.price}
-          </span>
+            <img
+              src={p.photoUrl}
+              alt={p.name}
+              className="max-h-[180px] w-full object-contain"
+            />
+          </a>
+        ) : (
+          <div className="text-center">
+            <div className="text-5xl">☕</div>
+            <p
+              className="mt-2 text-xs"
+              style={{ color: "#888" }}
+            >
+              Café
+            </p>
+          </div>
         )}
       </div>
 
-      {p.description && (
-        <p
-          className="mt-3 text-sm leading-6"
-          style={{ color: "#756B63" }}
-        >
-          {p.description}
-        </p>
-      )}
+      {/* INFORMATIONS */}
+      <div className="relative flex min-w-0 flex-col justify-between p-4">
 
-      {/* PANIER */}
-      <div className="mt-5">
-        <AddToCartButton
-          productId={p.id}
-          vendorId={vendor.id}
-          vendorName={vendor.name}
-          name={p.name}
-          price={Number(p.price) || 0}
-          image={p.photoUrl}
-        />
+        <div>
+          <h3
+            className="text-lg font-bold leading-tight"
+            style={{ color: "#111" }}
+          >
+            {p.name}
+          </h3>
+
+          {p.description && (
+            <p
+              className="mt-3 text-sm leading-5"
+              style={{ color: "#888" }}
+            >
+              {p.description}
+            </p>
+          )}
+
+          <div
+            className="mt-4 flex items-center gap-2 text-sm"
+            style={{ color: "#777" }}
+          >
+            <span className="text-xl">☕</span>
+            <span>Capsules</span>
+          </div>
+        </div>
+
+        {/* PRIX + BOUTON */}
+        <div className="mt-5 flex items-end justify-between gap-3">
+          <div>
+            {p.price && (
+              <span
+                className="text-lg font-black"
+                style={{ color: "#181818" }}
+              >
+                {p.price}
+              </span>
+            )}
+          </div>
+
+          <AddToCartButton
+            productId={p.id}
+            vendorId={vendor.id}
+            vendorName={vendor.name}
+            name={p.name}
+            price={Number(p.price) || 0}
+            image={p.photoUrl}
+          />
+        </div>
       </div>
     </div>
   </div>
