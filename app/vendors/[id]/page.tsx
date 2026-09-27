@@ -547,6 +547,39 @@ export default function VendorDetailPage() {
         ) : (
           <div className="text-center">
             <div className="text-5xl">☕</div>
+{products.map((p: any) => (
+  <div
+    key={p.id}
+    className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm"
+    style={{
+      border: "1px solid #E8E8E8",
+    }}
+  >
+    <div className="grid grid-cols-[42%_58%] min-h-[220px]">
+
+      {/* PHOTO */}
+      <div
+        className="flex items-center justify-center p-4"
+        style={{
+          background: "#F5F5F5",
+        }}
+      >
+        {p.photoUrl ? (
+          <a
+            href={p.photoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-full w-full items-center justify-center"
+          >
+            <img
+              src={p.photoUrl}
+              alt={p.name}
+              className="max-h-[180px] w-full object-contain"
+            />
+          </a>
+        ) : (
+          <div className="text-center">
+            <div className="text-5xl">☕</div>
             <p
               className="mt-2 text-xs"
               style={{ color: "#888" }}
