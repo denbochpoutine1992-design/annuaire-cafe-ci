@@ -499,7 +499,7 @@ export default function VendorDetailPage() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
         }}
       >
-        CAFÉ
+        CAPSULES
       </div>
     </div>
 
