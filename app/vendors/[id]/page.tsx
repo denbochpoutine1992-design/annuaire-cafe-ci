@@ -30,18 +30,14 @@ function waLink(phone: string) {
 
   let localNumber = digits;
 
-  // Numéro déjà au format international : 2250749583050
   if (digits.startsWith("225")) {
     localNumber = digits.slice(3);
   }
 
-  // Si le numéro est enregistré sans le 0 initial
-  // Exemple : 749583050 → 0749583050
   if (localNumber.length === 9 && !localNumber.startsWith("0")) {
     localNumber = `0${localNumber}`;
   }
 
-  // Numéro ivoirien : 0749583050 → 2250749583050
   const withCountry = `225${localNumber}`;
 
   return `https://wa.me/${withCountry}`;
