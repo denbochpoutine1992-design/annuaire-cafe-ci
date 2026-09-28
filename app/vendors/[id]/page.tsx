@@ -592,7 +592,31 @@ export default function VendorDetailPage() {
 
       {/* INFORMATIONS */}
       <div className="relative flex min-w-0 flex-col justify-between p-4">
+<div>
+  <h3
+    className="text-lg font-bold leading-tight"
+    style={{ color: "#111" }}
+  >
+    {p.name}
+  </h3>
 
+  {p.description && (
+    <p
+      className="mt-3 text-sm leading-5"
+      style={{ color: "#888" }}
+    >
+      {p.description}
+    </p>
+  )}
+
+  <div
+    className="mt-4 flex items-center gap-2 text-sm"
+    style={{ color: "#777" }}
+  >
+    <span className="text-xl">☕</span>
+    <span>Capsules</span>
+  </div>
+</div>
         <div>
           <h3
             className="text-lg font-bold leading-tight"
@@ -613,41 +637,7 @@ export default function VendorDetailPage() {
           <div
             className="mt-4 flex items-center gap-2 text-sm"
             style={{ color: "#777" }}
-          >
-            <span className="text-xl">☕</span>
-            <span>Capsules</span>
-          </div>
-        </div>
 
-        {/* PRIX + BOUTON */}
-        <div className="mt-5 flex items-end justify-between gap-3">
-          <div>
-            {p.price && (
-              <span
-                className="text-lg font-black"
-                style={{ color: "#181818" }}
-              >
-                {p.price}
-              </span>
-            )}
-          </div>
-
-          <AddToCartButton
-            productId={p.id}
-            vendorId={vendor.id}
-            vendorName={vendor.name}
-            name={p.name}
-            price={Number(p.price) || 0}
-            image={p.photoUrl}
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-))}
-                </div>
-              </section>
-            )}
 
             {/* GALERIE */}
             {photos.length > 1 && (
