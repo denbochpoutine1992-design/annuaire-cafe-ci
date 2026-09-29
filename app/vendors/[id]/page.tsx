@@ -589,52 +589,114 @@ export default function VendorDetailPage() {
       {/* INFORMATIONS */}
       <div className="relative flex min-w-0 flex-col justify-between p-4">
 <div>
-  <h3
-    className="text-lg font-bold leading-tight"
-    style={{ color: "#111" }}
-  >
-    {p.name}
-  </h3>
 
-  {p.description && (
-    <p
-      className="mt-3 text-sm leading-5"
-      style={{ color: "#888" }}
-    >
-      {p.description}
-    </p>
-  )}
+            {/* PRODUITS */}
+            {products.length > 0 && (
+              <section
+                className="bg-white rounded-3xl p-6 md:p-8"
+                style={{ border: "1px solid #E4E4E7" }}
+              >
+                <div className="flex items-end justify-between mb-6">
+                  <div>
+                    <p
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: accent }}
+                    >
+                      Découvrez
+                    </p>
+                    <h2 className="text-2xl font-black mt-1">
+                      Catalogue
+                    </h2>
+                  </div>
 
-  <div
-    className="mt-4 flex items-center gap-2 text-sm"
-    style={{ color: "#777" }}
-  >
-    <span className="text-xl">☕</span>
-    <span>Capsules</span>
-  </div>
-</div>
-        <div>
-          <h3
-            className="text-lg font-bold leading-tight"
-            style={{ color: "#111" }}
-          >
-            {p.name}
-          </h3>
+                  <span
+                    className="text-sm font-semibold px-3 py-1.5 rounded-full"
+                    style={{
+                      background: "#F4F4F5",
+                      color: "#52525B",
+                    }}
+                  >
+                    {products.length} produit
+                    {products.length > 1 ? "s" : ""}
+                  </span>
+                </div>
 
-          {p.description && (
-            <p
-              className="mt-3 text-sm leading-5"
-              style={{ color: "#888" }}
-            >
-              {p.description}
-            </p>
-          )}
+                <div className="space-y-4">
+                  {products.map((p: any) => (
+                    <div
+                      key={p.id}
+                      className="overflow-hidden rounded-2xl bg-white shadow-sm"
+                      style={{ border: "1px solid #E8E8E8" }}
+                    >
+                      <div className="grid grid-cols-[42%_58%] min-h-[220px]">
+                        <div
+                          className="flex items-center justify-center p-3"
+                          style={{ background: "#F5F5F5" }}
+                        >
+                          {p.photoUrl ? (
+                            <a
+                              href={p.photoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex h-full w-full items-center justify-center"
+                            >
+                              <img
+                                src={p.photoUrl}
+                                alt={p.name}
+                                className="max-h-[180px] w-full object-contain"
+                              />
+                            </a>
+                          ) : (
+                            <div className="text-center">
+                              <div className="text-5xl">☕</div>
+                              <p className="mt-2 text-xs text-zinc-500">
+                                Café
+                              </p>
+                            </div>
+                          )}
+                        </div>
 
-          <div
-            className="mt-4 flex items-center gap-2 text-sm"
-            style={{ color: "#777" }}
+                        <div className="flex min-w-0 flex-col justify-between p-4">
+                          <div>
+                            <h3 className="text-lg font-bold leading-tight text-black">
+                              {p.name}
+                            </h3>
 
+                            {p.description && (
+                              <p className="mt-3 text-sm leading-5 text-zinc-500">
+                                {p.description}
+                              </p>
+                            )}
 
+                            <div className="mt-4 flex items-center gap-2 text-sm text-zinc-500">
+                              <span className="text-xl">☕</span>
+                              <span>Capsules</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-5 flex items-end justify-between gap-2">
+                            <div className="text-sm font-black text-black">
+                              {Number(p.price) > 0
+                                ? `${Number(p.price).toLocaleString("fr-FR")} FCFA`
+                                : "Prix non renseigné"}
+                            </div>
+
+                            <AddToCartButton
+                              productId={p.id}
+                              vendorId={vendor.id}
+                              vendorName={vendor.name}
+                              name={p.name}
+                              price={Number(p.price) || 0}
+                              image={p.photoUrl}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
             {/* GALERIE */}
             {photos.length > 1 && (
               <section
