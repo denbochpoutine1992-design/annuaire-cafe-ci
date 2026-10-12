@@ -14,6 +14,7 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+// Le contrôle du rôle administrateur est fait côté serveur (lib/admin.ts).
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*"],
 };
