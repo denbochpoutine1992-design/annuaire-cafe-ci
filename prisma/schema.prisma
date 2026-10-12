@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -5,6 +6,12 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -16,26 +23,30 @@ model User {
 }
 
 model Vendor {
-  id           String   @id @default(cuid())
-  ownerId      String
-  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name         String
-  category     String
-  city         String
-  neighborhood String?
-  description  String?
-  phone        String
-  priceInfo    String?
-  latitude     Float?
-  longitude    Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  photos       Photo[]
-  reviews      Review[]
-  products     Product[]
+  id            String       @id @default(cuid())
+  ownerId       String
+  owner         User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String
+  category      String
+  city          String
+  neighborhood  String?
+  description   String?
+  phone         String
+  priceInfo     String?
+  latitude      Float?
+  longitude     Float?
+  status        VendorStatus @default(APPROVED)
+  featured      Boolean      @default(false)
+  featuredUntil DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  photos        Photo[]
+  reviews       Review[]
+  products      Product[]
 
   @@index([city])
   @@index([category])
+  @@index([status])
 }
 
 model Product {
