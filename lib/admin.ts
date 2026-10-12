@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 
@@ -13,7 +13,7 @@ function adminEmails() {
 /**
  * À appeler en tête de chaque page et de chaque action d'administration.
  * - Pas connecté : redirection vers la connexion.
- * - Connecté mais pas administrateur : page 404 (l'existence de /admin n'est pas révélée).
+ * - Connecté mais pas administrateur : page « Accès refusé » (/admin-denied).
  */
 export async function requireAdmin() {
   const userId = await getSessionUserId();
@@ -24,7 +24,9 @@ export async function requireAdmin() {
     select: { id: true, email: true },
   });
 
-  if (!user || !adminEmails().includes(user.email.toLowerCase())) notFound();
+  if (!user || !adminEmails().includes(user.email.toLowerCase())) {
+    redirect("/admin-denied");
+  }
 
   return user;
 }
