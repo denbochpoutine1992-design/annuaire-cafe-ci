@@ -1,9 +1,22 @@
 import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 
 const COOKIE_NAME = "acdi_session";
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
+
+// En production, AUTH_SECRET est obligatoire : sans lui, n'importe qui
+// pourrait fabriquer une session valide avec la clé par défaut.
+const secret = () => {
+  const value = process.env.AUTH_SECRET;
+  if (!value) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET manquant");
+    }
+    return new TextEncoder().encode("dev-secret-change-me");
+  }
+  return new TextEncoder().encode(value);
+};
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
