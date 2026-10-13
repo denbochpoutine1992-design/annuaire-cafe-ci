@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -11,11 +12,15 @@ export const metadata = {
 const LINKS = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/vendors", label: "Commerces" },
+  { href: "/admin/orders", label: "Commandes" },
   { href: "/admin/reviews", label: "Avis" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin();
+
+  // Nombre de commandes à traiter, affiché sur le lien « Commandes »
+  const newOrders = await db.order.count({ where: { status: "NEW" } });
 
   return (
     <div className="min-h-screen bg-[#F7F3EC] text-[#18120E]">
@@ -30,6 +35,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 className="rounded-full px-3 py-1.5 text-sm text-[#6B5F55] transition hover:bg-[#F4EFE7] hover:text-[#18120E]"
               >
                 {l.label}
+                {l.href === "/admin/orders" && newOrders > 0 && (
+                  <span className="ml-1.5 rounded-full bg-[#B78B42] px-2 py-0.5 text-xs font-bold text-black">
+                    {newOrders}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
