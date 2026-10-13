@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+// NB : le nom du fichier est conservé (ProductCarousel) pour ne pas avoir à modifier
+// la page d'un commerce. Le composant affiche maintenant une GRILLE de produits
+// (2 colonnes sur téléphone), avec le sélecteur de quantité − / + relié au panier.
+
+import { useState } from "react";
 import Image from "next/image";
-import AddToCartButton from "@/components/AddToCartButton";
+import { useCart } from "@/components/CartProvider";
 import { formatFcfa, parseFcfa } from "@/lib/format";
 
 type Product = {
@@ -13,148 +17,165 @@ type Product = {
   photoUrl?: string | null;
 };
 
-/**
- * Carrousel horizontal 100 % CSS pour le défilement (scroll-snap) :
- * - au doigt sur mobile, sans JavaScript ;
- * - boutons précédent/suivant sur ordinateur (le JS ne fait que déplacer le défilement).
- */
+type Vendor = { id: string; name: string };
+
+const FOCUS =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]";
+
+function ProductCard({
+  product,
+  vendor,
+  accent,
+  priority,
+}: {
+  product: Product;
+  vendor: Vendor;
+  accent: string;
+  priority: boolean;
+}) {
+  const { items, addToCart, updateQuantity } = useCart();
+  const [expanded, setExpanded] = useState(false);
+
+  const price = parseFcfa(product.price);
+
+  // Quantité déjà présente dans le panier pour ce produit
+  const quantity =
+    items.find((i) => i.productId === product.id && i.vendorId === vendor.id)?.quantity ?? 0;
+
+  const description = product.description ?? "";
+  const isLong = description.length > 70;
+
+  function add() {
+    addToCart({
+      productId: product.id,
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      name: product.name,
+      price,
+      image: product.photoUrl ?? undefined,
+    });
+  }
+
+  function remove() {
+    updateQuantity(product.id, vendor.id, quantity - 1);
+  }
+
+  return (
+    <li className="flex flex-col rounded-3xl border border-[#E5DDD2] bg-[#F6F0E6] p-2.5 sm:p-3">
+      {/* Image carrée : hauteur réservée, pas de saut de mise en page */}
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-white">
+        {product.photoUrl ? (
+          <Image
+            src={product.photoUrl}
+            alt={product.name}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+            className="object-contain p-2"
+            loading={priority ? "eager" : "lazy"}
+            unoptimized
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="flex h-full w-full items-center justify-center text-5xl"
+            style={{ color: accent }}
+          >
+            ☕
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col px-1.5 pb-1 pt-3">
+        <h3 className="font-display line-clamp-2 text-lg font-semibold leading-tight text-[#18120E]">
+          {product.name}
+        </h3>
+
+        {description && (
+          <p
+            className={`mt-1.5 text-sm leading-snug text-[#6B5F55] ${
+              expanded ? "" : "line-clamp-2"
+            }`}
+          >
+            {description}
+          </p>
+        )}
+
+        {isLong && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className={`mt-1.5 self-start text-sm text-[#8A5C20] underline ${FOCUS}`}
+          >
+            {expanded ? "Réduire" : "Voir les détails"}
+          </button>
+        )}
+
+        <p className="font-display mt-3 text-xl font-semibold text-[#18120E]">
+          {price > 0 ? formatFcfa(price) : "Prix non renseigné"}
+        </p>
+
+        {/* Sélecteur de quantité : on n'ajoute rien sans prix valide */}
+        {price > 0 && (
+          <div className="mt-auto pt-3">
+            <div className="flex items-center justify-between rounded-full border border-[#CFC4B3] bg-[#FBF8F2] p-1">
+              <button
+                type="button"
+                onClick={remove}
+                disabled={quantity === 0}
+                aria-label={`Retirer une unité de ${product.name}`}
+                className={`flex h-11 w-11 items-center justify-center rounded-full text-xl text-[#18120E] transition disabled:text-[#B9AE9E] ${FOCUS}`}
+              >
+                −
+              </button>
+
+              <span
+                className="min-w-[1.5rem] text-center font-semibold text-[#18120E]"
+                aria-live="polite"
+                aria-label={`Quantité dans le panier : ${quantity}`}
+              >
+                {quantity}
+              </span>
+
+              <button
+                type="button"
+                onClick={add}
+                aria-label={`Ajouter ${product.name} au panier`}
+                className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#D8B46A] text-2xl font-medium text-black shadow transition hover:bg-[#C9A052] active:scale-95 ${FOCUS}`}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export default function ProductCarousel({
   products,
   vendor,
   accent,
 }: {
   products: Product[];
-  vendor: { id: string; name: string };
+  vendor: Vendor;
   accent: string;
 }) {
-  const trackRef = useRef<HTMLUListElement>(null);
-  const [edge, setEdge] = useState({ start: true, end: false });
-
-  const update = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const start = el.scrollLeft <= 4;
-    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
-    setEdge((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
-  }, []);
-
-  useEffect(() => {
-    update();
-    const el = trackRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [update, products.length]);
-
-  function scrollPage(direction: 1 | -1) {
-    const el = trackRef.current;
-    if (!el) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollBy({ left: direction * el.clientWidth * 0.9, behavior: reduce ? "auto" : "smooth" });
-  }
-
-  const arrow =
-    "absolute top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white text-xl shadow-md transition hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-0 md:flex focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]";
-
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-label="Produits précédents"
-        disabled={edge.start}
-        onClick={() => scrollPage(-1)}
-        className={`${arrow} -left-3`}
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        aria-label="Produits suivants"
-        disabled={edge.end}
-        onClick={() => scrollPage(1)}
-        className={`${arrow} -right-3`}
-      >
-        ›
-      </button>
-
-      <ul
-        ref={trackRef}
-        onScroll={update}
-        tabIndex={0}
-        aria-label={`Produits de ${vendor.name}`}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-4 motion-reduce:scroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {products.map((p, index) => {
-          const price = parseFcfa(p.price);
-          return (
-            <li
-              key={p.id}
-              className="flex w-[72%] min-w-[220px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white sm:w-[46%] lg:w-[31%]"
-            >
-              {/* Hauteur réservée (carré) : pas de saut de mise en page au chargement */}
-              <div className="relative aspect-square bg-zinc-100">
-                {p.photoUrl ? (
-                  <Image
-                    src={p.photoUrl}
-                    alt={p.name}
-                    fill
-                    sizes="(min-width: 1024px) 300px, 72vw"
-                    className="object-contain p-3"
-                    loading={index < 2 ? "eager" : "lazy"}
-                    unoptimized
-                  />
-                ) : (
-                  <div
-                    aria-hidden="true"
-                    className="flex h-full w-full items-center justify-center text-5xl"
-                    style={{ color: accent }}
-                  >
-                    ☕
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-1 flex-col p-4">
-                <h3 className="line-clamp-2 text-base font-bold leading-tight text-zinc-900">
-                  {p.name}
-                </h3>
-
-                {p.description && (
-                  <p className="mt-2 line-clamp-2 text-sm leading-snug text-zinc-600">
-                    {p.description}
-                  </p>
-                )}
-
-                <div className="mt-auto flex items-end justify-between gap-2 pt-4">
-                  <p className="text-base font-black text-zinc-900">
-                    {price > 0 ? formatFcfa(price) : "Prix non renseigné"}
-                  </p>
-
-                  {/* Pas d'ajout au panier sans prix valide */}
-                  {price > 0 && (
-                    <AddToCartButton
-                      productId={p.id}
-                      vendorId={vendor.id}
-                      vendorName={vendor.name}
-                      name={p.name}
-                      price={price}
-                      image={p.photoUrl ?? undefined}
-                    />
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      {!edge.end && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent"
+    <ul
+      aria-label={`Produits de ${vendor.name}`}
+      className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"
+    >
+      {products.map((product, index) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          vendor={vendor}
+          accent={accent}
+          priority={index < 4}
         />
-      )}
-    </div>
+      ))}
+    </ul>
   );
 }
