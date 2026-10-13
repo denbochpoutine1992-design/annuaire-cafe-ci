@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,6 +11,13 @@ enum VendorStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  DELIVERED
+  CANCELLED
 }
 
 model User {
@@ -43,6 +49,7 @@ model Vendor {
   photos        Photo[]
   reviews       Review[]
   products      Product[]
+  orders        Order[]
 
   @@index([city])
   @@index([category])
@@ -81,4 +88,39 @@ model Review {
   createdAt  DateTime @default(now())
 
   @@index([vendorId])
+}
+
+// Une commande = un vendeur. Les noms et prix sont copiés au moment de l'achat
+// (le catalogue peut changer ensuite) et l'historique est conservé si le vendeur est supprimé.
+model Order {
+  id              String      @id @default(cuid())
+  reference       String      @unique        // ex. ACI-7KQ2MX, communiquée au client
+  vendorId        String?
+  vendor          Vendor?     @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  vendorName      String
+  buyerId         String?                    // vide si le client n'a pas de compte
+  buyerName       String
+  buyerPhone      String
+  deliveryCity    String
+  deliveryAddress String
+  note            String?
+  status          OrderStatus @default(NEW)
+  totalFcfa       Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            String @id @default(cuid())
+  orderId       String
+  order         Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  nameSnapshot  String
+  unitPriceFcfa Int
+  quantity      Int
 }
