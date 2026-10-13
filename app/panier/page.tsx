@@ -175,4 +175,14 @@ export default function PanierPage() {
                 onClick={() => {
                   if (window.confirm("Vider tout le panier ?")) clearCart();
                 }}
-                className={`mt-5
+                className={`mt-5 rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
+              >
+                Vider le panier
+              </button>
+            </div>
+          </>
+        )}
+      </main>
+    </>
+  );
+}
