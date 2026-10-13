@@ -139,7 +139,7 @@ export default function ProductCarousel({
                       vendorName={vendor.name}
                       name={p.name}
                       price={price}
-                      image={p.photoUrl}
+                      image={p.photoUrl ?? undefined}
                     />
                   )}
                 </div>
