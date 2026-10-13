@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { useCart } from "@/components/CartProvider";
+import { useCart, type VendorGroup } from "@/components/CartProvider";
+import CheckoutForm, { type OrderDone } from "@/components/CheckoutForm";
 import { formatFcfa } from "@/lib/format";
 
 const FOCUS =
@@ -19,11 +21,61 @@ export default function CartView() {
   const { ready, groups, total, count, updateQuantity, removeFromCart, clearCart } =
     useCart();
 
+  // Vendeur dont le formulaire de commande est ouvert
+  const [openVendor, setOpenVendor] = useState<string | null>(null);
+  // Dernière commande enregistrée (affichée en haut de la page)
+  const [done, setDone] = useState<OrderDone | null>(null);
+
+  function handleDone(group: VendorGroup, info: OrderDone) {
+    // La commande est enregistrée : on retire du panier les produits de ce vendeur
+    group.items.forEach((item) => removeFromCart(item.productId, item.vendorId));
+    setOpenVendor(null);
+    setDone(info);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-5 py-10 md:py-14">
       <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
         Mon panier
       </h1>
+
+      {done && (
+        <section
+          role="status"
+          className="mt-6 rounded-2xl border border-[#BFE3CC] bg-[#EEF9F2] p-5"
+        >
+          <p className="text-lg font-semibold text-[#0F5A31]">
+            ✓ Commande {done.reference} enregistrée
+          </p>
+          <p className="mt-2 text-[#2F4A3A]">
+            Total : <strong>{formatFcfa(done.totalFcfa)}</strong>. Dernière étape : envoyez
+            votre commande à {done.vendorName} sur WhatsApp. C’est le vendeur qui la confirme
+            et organise la livraison.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href={done.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center rounded-full bg-[#0F7A40] px-6 py-3 font-semibold text-white transition hover:bg-[#0B6333] ${FOCUS}`}
+            >
+              Envoyer sur WhatsApp
+              <span className="sr-only"> (nouvel onglet)</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setDone(null)}
+              className={`rounded-full border border-[#9CC9AE] px-5 py-3 font-medium text-[#0F5A31] transition hover:bg-white ${FOCUS}`}
+            >
+              Fermer
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-[#2F4A3A]">
+            Gardez votre référence : <strong>{done.reference}</strong>.
+          </p>
+        </section>
+      )}
 
       {!ready ? (
         <div
@@ -54,7 +106,7 @@ export default function CartView() {
               <section
                 key={group.vendorId}
                 aria-labelledby={`vendor-${group.vendorId}`}
-                className="rounded-2xl border border-[#E5DDD2] bg-white"
+                className="overflow-hidden rounded-2xl border border-[#E5DDD2] bg-white"
               >
                 <header className="flex items-center justify-between gap-3 border-b border-[#EFE8DC] px-5 py-4">
                   <h2 id={`vendor-${group.vendorId}`} className="truncate font-semibold">
@@ -145,6 +197,24 @@ export default function CartView() {
                     </li>
                   ))}
                 </ul>
+
+                {openVendor === group.vendorId ? (
+                  <CheckoutForm
+                    group={group}
+                    onDone={(info) => handleDone(group, info)}
+                    onCancel={() => setOpenVendor(null)}
+                  />
+                ) : (
+                  <div className="border-t border-[#EFE8DC] p-5">
+                    <button
+                      type="button"
+                      onClick={() => setOpenVendor(group.vendorId)}
+                      className={`w-full rounded-full bg-[#D8B46A] px-6 py-3.5 font-semibold text-black transition hover:bg-[#C9A052] ${FOCUS}`}
+                    >
+                      Commander chez {group.vendorName || "ce vendeur"}
+                    </button>
+                  </div>
+                )}
               </section>
             ))}
           </div>
@@ -157,19 +227,21 @@ export default function CartView() {
 
             {groups.length > 1 && (
               <p className="mt-3 text-sm text-[#6B5F55]">
-                Votre panier contient des produits de {groups.length} vendeurs : chaque vendeur
-                prépare et livre sa propre commande.
+                Votre panier contient des produits de {groups.length} vendeurs : une commande
+                séparée est passée avec chacun, et chaque vendeur prépare et livre la sienne.
               </p>
             )}
             <p className="mt-3 text-sm text-[#6B5F55]">
-              Les prix sont confirmés au moment de la commande. La commande en ligne sera
-              disponible prochainement.
+              Les prix sont vérifiés au moment de la commande.
             </p>
 
             <button
               type="button"
               onClick={() => {
-                if (window.confirm("Vider tout le panier ?")) clearCart();
+                if (window.confirm("Vider tout le panier ?")) {
+                  clearCart();
+                  setOpenVendor(null);
+                }
               }}
               className={`mt-5 rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
             >
