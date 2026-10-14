@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { CATEGORIES } from "@/lib/constants";
+import { toPublicVendor } from "@/lib/public-vendor";
 
 function text(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
 
   const sorted = vendors.sort((a, b) => Number(isFeatured(b)) - Number(isFeatured(a)));
 
-  return NextResponse.json(sorted);
+  return NextResponse.json(sorted.map(toPublicVendor));
 }
 
 export async function POST(req: NextRequest) {
