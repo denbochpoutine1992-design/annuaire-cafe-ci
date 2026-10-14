@@ -7,19 +7,6 @@ import StarRating from "./StarRating";
 import { catLabel } from "@/lib/constants";
 import type { Vendor } from "@/types/vendor";
 
-/** Numéro ivoirien au format international, chiffres uniquement (ex. 2250749583050). */
-function toIntlDigits(phone?: string | null) {
-  const digits = (phone ?? "").replace(/\D/g, "");
-  if (!digits) return "";
-
-  let local = digits.startsWith("225") ? digits.slice(3) : digits;
-
-  // Numéro enregistré sans le 0 initial : 749583050 → 0749583050
-  if (local.length === 9 && !local.startsWith("0")) local = `0${local}`;
-
-  return `225${local}`;
-}
-
 const CATEGORY_COLORS: Record<string, string> = {
   torrefacteur: "#7C4A2D",
   detaillant: "#166534",
@@ -49,8 +36,7 @@ export default function VendorCard({ vendor }: { vendor: Vendor }) {
       new Date(vendor.featuredUntil) > new Date()
   );
 
-  const intl = toIntlDigits(vendor.phone);
-  const place = [vendor.neighborhood, vendor.city].filter(Boolean).join(", ");
+  const place = vendor.city ?? "";
 
   return (
     <article
@@ -155,31 +141,6 @@ export default function VendorCard({ vendor }: { vendor: Vendor }) {
             {vendor.priceInfo}
           </p>
         )}
-
-        {/* Actions : au-dessus du lien étendu (z-10) */}
-        <div className="mt-auto pt-5">
-          {intl && (
-            <div className="relative z-10 flex items-center gap-2 border-t border-zinc-200 pt-4">
-              <a
-                href={`tel:+${intl}`}
-                className={`flex-1 rounded-full border border-zinc-300 px-3 py-2.5 text-center text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 ${FOCUS}`}
-              >
-                Appeler
-                <span className="sr-only"> {name}</span>
-              </a>
-
-              <a
-                href={`https://wa.me/${intl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex-1 rounded-full bg-[#0F7A40] px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#0B6333] ${FOCUS}`}
-              >
-                WhatsApp
-                <span className="sr-only"> {name} (nouvel onglet)</span>
-              </a>
-            </div>
-          )}
-        </div>
       </div>
     </article>
   );
