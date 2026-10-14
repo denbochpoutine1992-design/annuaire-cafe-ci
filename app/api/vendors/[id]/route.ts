@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { isAdminUser } from "@/lib/is-admin";
+import { toPublicVendor } from "@/lib/public-vendor";
 import { CATEGORIES } from "@/lib/constants";
 
 function text(value: unknown, max: number) {
@@ -33,14 +34,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   });
   if (!vendor) return bad("Introuvable.", 404);
 
-  // Une fiche en attente ou refusée n'est visible que par son propriétaire et l'administrateur
-  if (vendor.status !== "APPROVED") {
-    const userId = await getSessionUserId();
-    const allowed = !!userId && (vendor.ownerId === userId || (await isAdminUser(userId)));
-    if (!allowed) return bad("Introuvable.", 404);
-  }
+  // Le propriétaire et l'administrateur voient tout (y compris les fiches en attente).
+  const userId = await getSessionUserId();
+  const privileged = !!userId && (vendor.ownerId === userId || (await isAdminUser(userId)));
 
-  return NextResponse.json(vendor);
+  // Une fiche en attente ou refusée n'est visible que par eux.
+  if (vendor.status !== "APPROVED" && !privileged) return bad("Introuvable.", 404);
+
+  // Le public ne reçoit ni téléphone, ni position, ni quartier.
+  return NextResponse.json(privileged ? vendor : toPublicVendor(vendor));
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
