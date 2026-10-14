@@ -1,23 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 
 import VendorCard from "@/components/VendorCard";
 import { CATEGORIES, VILLES } from "@/lib/constants";
 import type { Vendor } from "@/types/vendor";
-
-const MapView = dynamic(() => import("@/components/MapView"), {
-  ssr: false,
-  loading: () => (
-    <div
-      className="h-[480px] animate-pulse bg-[#EFE8DC] motion-reduce:animate-none"
-      aria-hidden="true"
-    />
-  ),
-});
 
 /* Palette (inchangée) : crème #F7F3EC · encre #18120E · espresso #21150F · or #B78B42 */
 
@@ -186,64 +175,8 @@ export default function HomeClient() {
           aria-hidden="true"
         />
 
-        {/* Navigation */}
-        <nav
-          aria-label="Navigation principale"
-          className="absolute inset-x-0 top-0 z-50"
-        >
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-10">
-            <Link
-              href="/"
-              className={`flex items-center gap-3 rounded-full text-white ${FOCUS}`}
-            >
-              <span
-                aria-hidden="true"
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xl backdrop-blur"
-              >
-                ☕
-              </span>
-              <span className="hidden sm:block">
-                <span className="block font-semibold tracking-tight">
-                  Annuaire Café CI
-                </span>
-                <span className="block text-[11px] text-white/60">
-                  Côte d’Ivoire
-                </span>
-              </span>
-            </Link>
-
-            <div className="hidden items-center gap-8 text-sm text-white/80 md:flex">
-              <a href="#explorer" className={`transition hover:text-white ${FOCUS}`}>
-                Explorer
-              </a>
-              <a href="#resultats" className={`transition hover:text-white ${FOCUS}`}>
-                Commerces
-              </a>
-              <a href="#localisation" className={`transition hover:text-white ${FOCUS}`}>
-                Localisation
-              </a>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className={`hidden rounded-full px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 sm:inline-flex ${FOCUS}`}
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/register"
-                className={`rounded-full bg-[#B78B42] px-4 py-2.5 text-sm font-semibold text-[#18120E] shadow-lg transition hover:bg-[#C59A4D] ${FOCUS}`}
-              >
-                <span className="hidden sm:inline">Inscrire mon commerce</span>
-                <span className="sm:hidden">S’inscrire</span>
-              </Link>
-            </div>
-          </div>
-        </nav>
-
         {/* Contenu */}
-        <div className="relative z-10 mx-auto max-w-7xl px-5 pb-24 pt-32 md:px-10 md:pt-40">
+        <div className="relative z-10 mx-auto max-w-7xl px-5 pb-24 pt-16 md:px-10 md:pt-24">
           <div className="max-w-4xl">
             <p className="inline-flex rounded-full border border-[#E7C780]/45 bg-black/25 px-4 py-2 text-sm font-medium text-[#E7C780] backdrop-blur">
               L’univers du café ivoirien
@@ -547,24 +480,6 @@ export default function HomeClient() {
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ===== CARTE ===== */}
-      <section
-        id="localisation"
-        className="mx-auto max-w-7xl scroll-mt-6 px-5 py-20 md:px-10 md:py-24"
-      >
-        <div className="mb-8">
-          <SectionHeading
-            eyebrow="Localisation"
-            title="Le café près de chez vous"
-            text="Retrouvez sur la carte les commerces ayant renseigné leur localisation."
-          />
-        </div>
-
-        <div className="overflow-hidden rounded-[28px] border border-[#DED5C8] shadow-[0_18px_60px_rgba(39,26,17,0.08)]">
-          <MapView vendors={vendors} height={480} />
         </div>
       </section>
 
