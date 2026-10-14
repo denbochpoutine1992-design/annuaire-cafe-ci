@@ -3,15 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 
 import StarRating from "@/components/StarRating";
 import ProductCarousel from "@/components/ProductCarousel";
 import { catLabel } from "@/lib/constants";
-
-const MapView = dynamic(() => import("@/components/MapView"), {
-  ssr: false,
-});
 
 const CATEGORY_COLORS: Record<string, string> = {
   torrefacteur: "#7C4A2D",
@@ -23,24 +18,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function catColor(category: string) {
   return CATEGORY_COLORS[category] || "#3F3F46";
-}
-
-function waLink(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  let localNumber = digits;
-
-  if (digits.startsWith("225")) {
-    localNumber = digits.slice(3);
-  }
-
-  if (localNumber.length === 9 && !localNumber.startsWith("0")) {
-    localNumber = `0${localNumber}`;
-  }
-
-  const withCountry = `225${localNumber}`;
-
-  return `https://wa.me/${withCountry}`;
 }
 
 export default function VendorDetailPage() {
@@ -318,11 +295,7 @@ export default function VendorDetailPage() {
                     className="mt-2 text-sm md:text-base"
                     style={{ color: "#71717A" }}
                   >
-                    📍{" "}
-                    {vendor.neighborhood
-                      ? `${vendor.neighborhood}, `
-                      : ""}
-                    {vendor.city}
+                    📍 {vendor.city}
                   </p>
 
                   {reviews.length > 0 && (
@@ -499,71 +472,6 @@ export default function VendorDetailPage() {
                 </div>
               </section>
             )}
-
-            {/* LOCALISATION */}
-            {vendor.latitude != null &&
-              vendor.longitude != null && (
-                <section
-                  className="bg-white rounded-3xl p-6 md:p-8"
-                  style={{
-                    border: "1px solid #E4E4E7",
-                  }}
-                >
-                  <div className="mb-6">
-                    <p
-                      className="text-xs font-bold uppercase tracking-wider"
-                      style={{ color: accent }}
-                    >
-                      Où nous trouver
-                    </p>
-
-                    <h2 className="text-2xl font-black mt-1">
-                      Localisation
-                    </h2>
-
-                    <p
-                      className="text-sm mt-2"
-                      style={{ color: "#71717A" }}
-                    >
-                      📍{" "}
-                      {vendor.neighborhood
-                        ? `${vendor.neighborhood}, `
-                        : ""}
-                      {vendor.city}
-                    </p>
-                  </div>
-
-                  <div
-                    className="overflow-hidden rounded-2xl"
-                    style={{
-                      border: "1px solid #E4E4E7",
-                    }}
-                  >
-                    <MapView
-                      vendors={[vendor]}
-                      center={[
-                        vendor.latitude,
-                        vendor.longitude,
-                      ]}
-                      zoom={14}
-                      height={320}
-                    />
-                  </div>
-
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${vendor.latitude},${vendor.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold"
-                    style={{
-                      background: "#F4F4F5",
-                      color: "#18181B",
-                    }}
-                  >
-                    🗺️ Ouvrir dans Google Maps
-                  </a>
-                </section>
-              )}
 
             {/* AVIS */}
             <section
@@ -753,191 +661,4 @@ export default function VendorDetailPage() {
                             style={{ color: "#A1A1AA" }}
                           >
                             Avis client
-                          </div>
-                        </div>
-                      </div>
-
-                      <StarRating value={r.rating} />
-                    </div>
-
-                    {r.comment && (
-                      <p
-                        className="text-sm leading-6 mt-4"
-                        style={{ color: "#52525B" }}
-                      >
-                        “{r.comment}”
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* COLONNE DROITE */}
-          <aside className="lg:sticky lg:top-24 h-fit">
-            <div
-              className="bg-white rounded-3xl p-5 md:p-6"
-              style={{
-                border: "1px solid #E4E4E7",
-                boxShadow:
-                  "0 20px 45px -30px rgba(24,24,27,0.3)",
-              }}
-            >
-              <div className="mb-5">
-                <p
-                  className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: accent }}
-                >
-                  Contacter
-                </p>
-
-                <h2 className="text-xl font-black mt-1">
-                  {vendor.name}
-                </h2>
-
-                <p
-                  className="text-sm mt-1"
-                  style={{ color: "#71717A" }}
-                >
-                  📍 {vendor.city}
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <a
-                  href={`tel:${vendor.phone}`}
-                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-bold"
-                  style={{
-                    background: "#18181B",
-                    color: "#fff",
-                  }}
-                >
-                  📞 Appeler le commerce
-                </a>
-
-                <a
-                  href={waLink(vendor.phone)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-bold"
-                  style={{
-                    background: "#DCFCE7",
-                    color: "#166534",
-                  }}
-                >
-                  💬 Contacter sur WhatsApp
-                </a>
-              </div>
-
-              <div
-                className="mt-5 pt-5 border-t space-y-4"
-                style={{ borderColor: "#F4F4F5" }}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">📍</span>
-
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                      Localisation
-                    </div>
-
-                    <div className="text-sm font-semibold mt-1">
-                      {vendor.neighborhood
-                        ? `${vendor.neighborhood}, `
-                        : ""}
-                      {vendor.city}
-                    </div>
-                  </div>
-                </div>
-
-                {vendor.phone && (
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">📱</span>
-
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                        Téléphone
-                      </div>
-
-                      <div className="text-sm font-semibold mt-1">
-                        {vendor.phone}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {reviews.length > 0 && (
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">⭐</span>
-
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                        Satisfaction
-                      </div>
-
-                      <div className="text-sm font-semibold mt-1">
-                        {avgRating.toFixed(1)} / 5 ·{" "}
-                        {reviews.length} avis
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
-      </main>
-
-      {/* CTA FINAL */}
-      <section
-        className="py-14 px-5"
-        style={{
-          background: "#18181B",
-        }}
-      >
-        <div className="max-w-3xl mx-auto text-center text-white">
-          <div className="text-4xl mb-4">☕</div>
-
-          <h2 className="text-2xl md:text-3xl font-black">
-            Découvrez d'autres commerces de café
-          </h2>
-
-          <p className="mt-3 text-sm md:text-base text-zinc-400">
-            Explorez les cafés, torréfacteurs, détaillants,
-            grossistes et commerces en ligne de Côte d'Ivoire.
-          </p>
-
-          <Link
-            href="/"
-            className="inline-flex mt-6 px-6 py-3.5 rounded-full text-sm font-bold"
-            style={{
-              background: "#fff",
-              color: "#18181B",
-            }}
-          >
-            Explorer l'annuaire →
-          </Link>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer
-        className="py-8 px-5 text-center"
-        style={{
-          background: "#111113",
-          color: "#71717A",
-        }}
-      >
-        <p className="text-sm">
-          © {new Date().getFullYear()} Annuaire Café CI
-        </p>
-
-        <p className="text-xs mt-2">
-          L'annuaire des professionnels du café en Côte
-          d'Ivoire.
-        </p>
-      </footer>
-    </div>
-  );
-}
+            
