@@ -1,217 +1,127 @@
-"use client";
+import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
+import { db } from "@/lib/db";
+import { getSessionUserId } from "@/lib/auth";
+import { parseFcfa } from "@/lib/format";
+import { isValidPhone } from "@/lib/phone";
 
-import { useEffect, useState } from "react";
-import { VILLES } from "@/lib/constants";
-import { formatFcfa } from "@/lib/format";
-import type { VendorGroup } from "@/components/CartProvider";
+const MAX_LINES = 30;
+const MAX_QTY = 99;
+const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O ni 1/I
 
-export type OrderDone = {
-  reference: string;
-  totalFcfa: number;
-  vendorName: string;
-};
+function text(value: unknown, max: number) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
 
-const STORAGE_KEY = "annuairecafe-buyer";
+function newReference() {
+  let s = "";
+  for (let i = 0; i < 6; i++) s += REF_ALPHABET[randomInt(REF_ALPHABET.length)];
+  return `ACI-${s}`;
+}
 
-const FIELD =
-  "h-12 w-full rounded-xl border border-[#D9CFC1] bg-white px-4 text-base text-[#18120E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B78B42]";
+function bad(error: string, status = 400) {
+  return NextResponse.json({ error }, { status });
+}
 
-export default function CheckoutForm({
-  group,
-  onDone,
-  onCancel,
-}: {
-  group: VendorGroup;
-  onDone: (info: OrderDone) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [address, setAddress] = useState("");
-  const [note, setNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  // Préremplissage avec les coordonnées de la dernière commande (sur cet appareil)
-  useEffect(() => {
+export async function POST(req: NextRequest) {
+  try {
+    let body: Record<string, unknown>;
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
-      if (saved && typeof saved === "object") {
-        if (typeof saved.name === "string") setName(saved.name);
-        if (typeof saved.phone === "string") setPhone(saved.phone);
-        if (typeof saved.city === "string") setCity(saved.city);
-        if (typeof saved.address === "string") setAddress(saved.address);
-      }
+      body = await req.json();
     } catch {
-      /* rien à préremplir */
+      return bad("Requête invalide.");
     }
-  }, []);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (submitting) return;
-    setError("");
-    setSubmitting(true);
+    const vendorId = text(body.vendorId, 80);
+    const buyerName = text(body.buyerName, 80);
+    const buyerPhone = text(body.buyerPhone, 30);
+    const deliveryCity = text(body.deliveryCity, 80);
+    const deliveryAddress = text(body.deliveryAddress, 300);
+    const note = text(body.note, 300);
 
-    try {
-      // Seuls les identifiants et les quantités sont envoyés : le serveur recalcule les prix.
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: group.vendorId,
-          items: group.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-          buyerName: name,
-          buyerPhone: phone,
-          deliveryCity: city,
-          deliveryAddress: address,
-          note,
-        }),
-      });
+    if (!vendorId) return bad("Vendeur manquant.");
+    if (buyerName.length < 2) return bad("Indiquez votre nom.");
+    if (!isValidPhone(buyerPhone)) return bad("Indiquez un numéro de téléphone valide.");
+    if (!deliveryCity) return bad("Choisissez votre ville.");
+    if (deliveryAddress.length < 5) return bad("Indiquez votre adresse de livraison.");
 
-      const data = await res.json().catch(() => ({}));
+    // Quantités par produit (les doublons sont additionnés). Les prix reçus sont IGNORÉS.
+    const rawItems = Array.isArray(body.items) ? body.items : [];
+    if (rawItems.length === 0 || rawItems.length > MAX_LINES) return bad("Panier invalide.");
 
-      if (!res.ok) {
-        setError(data?.error ?? "La commande n'a pas pu être enregistrée. Réessayez.");
-        return;
-      }
+    const quantities = new Map<string, number>();
+    for (const raw of rawItems) {
+      const r = (raw ?? {}) as Record<string, unknown>;
+      const productId = text(r.productId, 80);
+      const qty = Math.floor(Number(r.quantity));
+      if (!productId || !Number.isFinite(qty) || qty < 1) return bad("Panier invalide.");
+      quantities.set(productId, Math.min((quantities.get(productId) ?? 0) + qty, MAX_QTY));
+    }
 
+    // Le vendeur doit exister et être approuvé
+    const vendor = await db.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!vendor || vendor.status !== "APPROVED") {
+      return bad("Ce vendeur n'est plus disponible.", 404);
+    }
+
+    // Les produits doivent appartenir à CE vendeur ; les prix viennent de la base
+    const products = await db.product.findMany({
+      where: { id: { in: Array.from(quantities.keys()) }, vendorId: vendor.id },
+      select: { id: true, name: true, price: true },
+    });
+    if (products.length !== quantities.size) {
+      return bad("Un produit de votre panier n'est plus disponible. Actualisez votre panier.");
+    }
+
+    const lines = products.map((p) => ({
+      productId: p.id,
+      nameSnapshot: p.name,
+      unitPriceFcfa: parseFcfa(p.price),
+      quantity: quantities.get(p.id) as number,
+    }));
+
+    if (lines.some((l) => l.unitPriceFcfa <= 0)) {
+      return bad("Un produit n'a pas de prix : contactez directement le vendeur.");
+    }
+
+    const totalFcfa = lines.reduce((sum, l) => sum + l.unitPriceFcfa * l.quantity, 0);
+    const buyerId = await getSessionUserId();
+
+    // La référence est unique en base : on réessaie en cas de collision (très rare)
+    let reference = "";
+    let created = false;
+    for (let attempt = 0; attempt < 5 && !created; attempt++) {
+      reference = newReference();
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, phone, city, address }));
-      } catch {
-        /* sans importance */
+        await db.order.create({
+          data: {
+            reference,
+            vendorId: vendor.id,
+            vendorName: vendor.name,
+            buyerId,
+            buyerName,
+            buyerPhone,
+            deliveryCity,
+            deliveryAddress,
+            note: note || null,
+            totalFcfa,
+            items: { create: lines },
+          },
+        });
+        created = true;
+      } catch (e) {
+        if ((e as { code?: string }).code !== "P2002") throw e;
       }
-
-      onDone({
-        reference: data.reference,
-        totalFcfa: data.totalFcfa,
-        vendorName: group.vendorName,
-      });
-    } catch {
-      setError("Connexion impossible. Vérifiez votre réseau, puis réessayez.");
-    } finally {
-      setSubmitting(false);
     }
+    if (!created) return bad("Impossible d'enregistrer la commande. Réessayez.", 500);
+
+    // Le client n'est jamais mis en contact avec le vendeur : c'est la plateforme qui le recontacte.
+    return NextResponse.json({ reference, totalFcfa }, { status: 201 });
+  } catch (error) {
+    console.error("Erreur commande :", error);
+    return bad("Une erreur est survenue. Réessayez dans un instant.", 500);
   }
-
-  const label = "mb-1.5 block text-sm font-medium text-[#18120E]";
-
-  return (
-    <form onSubmit={submit} className="space-y-4 border-t border-[#EFE8DC] p-5">
-      <h3 className="font-semibold">Vos coordonnées de livraison</h3>
-
-      <div>
-        <label htmlFor={`name-${group.vendorId}`} className={label}>
-          Nom et prénom
-        </label>
-        <input
-          id={`name-${group.vendorId}`}
-          required
-          autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={80}
-          className={FIELD}
-        />
-      </div>
-
-      <div>
-        <label htmlFor={`phone-${group.vendorId}`} className={label}>
-          Téléphone (pour vous joindre)
-        </label>
-        <input
-          id={`phone-${group.vendorId}`}
-          required
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="07 00 00 00 00"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          maxLength={30}
-          className={FIELD}
-        />
-      </div>
-
-      <div>
-        <label htmlFor={`city-${group.vendorId}`} className={label}>
-          Ville
-        </label>
-        <select
-          id={`city-${group.vendorId}`}
-          required
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className={FIELD}
-        >
-          <option value="">Choisir la ville</option>
-          {VILLES.map((ville) => (
-            <option key={ville} value={ville}>
-              {ville}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor={`address-${group.vendorId}`} className={label}>
-          Adresse de livraison (quartier, repère)
-        </label>
-        <textarea
-          id={`address-${group.vendorId}`}
-          required
-          rows={2}
-          autoComplete="street-address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          maxLength={300}
-          className={`${FIELD} h-auto py-3`}
-        />
-      </div>
-
-      <div>
-        <label htmlFor={`note-${group.vendorId}`} className={label}>
-          Note pour le vendeur (facultatif)
-        </label>
-        <textarea
-          id={`note-${group.vendorId}`}
-          rows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={300}
-          className={`${FIELD} h-auto py-3`}
-        />
-      </div>
-
-      <p className="text-sm text-[#6B5F55]">
-        Total : <strong>{formatFcfa(group.subtotal)}</strong>. Nous vous appelons pour confirmer
-        votre commande et organiser la livraison. Paiement à la livraison.
-      </p>
-
-      {error && (
-        <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-full bg-[#21150F] px-6 py-3 font-semibold text-white transition hover:bg-black disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]"
-        >
-          {submitting ? "Envoi en cours…" : "Valider ma commande"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={submitting}
-          className="rounded-full border border-[#D9CFC1] px-5 py-3 font-medium transition hover:bg-[#F4EFE7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]"
-        >
-          Annuler
-        </button>
-      </div>
-    </form>
-  );
 }
