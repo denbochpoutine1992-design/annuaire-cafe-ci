@@ -1,205 +1,127 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import NavBar from "@/components/NavBar";
+import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
-import { formatFcfa } from "@/lib/format";
-import { toIntlDigits } from "@/lib/phone";
-import { setMyOrderStatus } from "./actions";
+import { parseFcfa } from "@/lib/format";
+import { isValidPhone } from "@/lib/phone";
 
-export const dynamic = "force-dynamic";
+const MAX_LINES = 30;
+const MAX_QTY = 99;
+const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O ni 1/I
 
-export const metadata = {
-  title: "Mes commandes",
-};
+function text(value: unknown, max: number) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
 
-const TABS = [
-  { value: "NEW", label: "Nouvelles" },
-  { value: "CONFIRMED", label: "Confirmées" },
-  { value: "DELIVERED", label: "Livrées" },
-  { value: "CANCELLED", label: "Annulées" },
-  { value: "ALL", label: "Toutes" },
-] as const;
+function newReference() {
+  let s = "";
+  for (let i = 0; i < 6; i++) s += REF_ALPHABET[randomInt(REF_ALPHABET.length)];
+  return `ACI-${s}`;
+}
 
-const LABEL: Record<string, string> = {
-  NEW: "Nouvelle",
-  CONFIRMED: "Confirmée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
-};
+function bad(error: string, status = 400) {
+  return NextResponse.json({ error }, { status });
+}
 
-const BADGE: Record<string, string> = {
-  NEW: "bg-amber-100 text-amber-900",
-  CONFIRMED: "bg-blue-100 text-blue-900",
-  DELIVERED: "bg-green-100 text-green-900",
-  CANCELLED: "bg-zinc-200 text-zinc-700",
-};
+export async function POST(req: NextRequest) {
+  try {
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return bad("Requête invalide.");
+    }
 
-const BTN =
-  "rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium text-[#18120E] transition hover:bg-[#F4EFE7]";
+    const vendorId = text(body.vendorId, 80);
+    const buyerName = text(body.buyerName, 80);
+    const buyerPhone = text(body.buyerPhone, 30);
+    const deliveryCity = text(body.deliveryCity, 80);
+    const deliveryAddress = text(body.deliveryAddress, 300);
+    const note = text(body.note, 300);
 
-const ACTIONS: Record<string, { status: string; label: string; primary?: boolean }[]> = {
-  NEW: [
-    { status: "CONFIRMED", label: "Confirmer la commande", primary: true },
-    { status: "CANCELLED", label: "Refuser" },
-  ],
-  CONFIRMED: [
-    { status: "DELIVERED", label: "Marquer comme livrée", primary: true },
-    { status: "CANCELLED", label: "Annuler" },
-  ],
-  DELIVERED: [],
-  CANCELLED: [],
-};
+    if (!vendorId) return bad("Vendeur manquant.");
+    if (buyerName.length < 2) return bad("Indiquez votre nom.");
+    if (!isValidPhone(buyerPhone)) return bad("Indiquez un numéro de téléphone valide.");
+    if (!deliveryCity) return bad("Choisissez votre ville.");
+    if (deliveryAddress.length < 5) return bad("Indiquez votre adresse de livraison.");
 
-export default async function MyOrders({
-  searchParams,
-}: {
-  searchParams: { status?: string };
-}) {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/login?next=/dashboard/orders");
+    // Quantités par produit (les doublons sont additionnés). Les prix reçus sont IGNORÉS.
+    const rawItems = Array.isArray(body.items) ? body.items : [];
+    if (rawItems.length === 0 || rawItems.length > MAX_LINES) return bad("Panier invalide.");
 
-  const current = TABS.some((t) => t.value === searchParams.status)
-    ? (searchParams.status as (typeof TABS)[number]["value"])
-    : "NEW";
+    const quantities = new Map<string, number>();
+    for (const raw of rawItems) {
+      const r = (raw ?? {}) as Record<string, unknown>;
+      const productId = text(r.productId, 80);
+      const qty = Math.floor(Number(r.quantity));
+      if (!productId || !Number.isFinite(qty) || qty < 1) return bad("Panier invalide.");
+      quantities.set(productId, Math.min((quantities.get(productId) ?? 0) + qty, MAX_QTY));
+    }
 
-  // Uniquement les commandes des commerces de ce vendeur
-  const mine = { vendor: { ownerId: userId } };
+    // Le vendeur doit exister et être approuvé
+    const vendor = await db.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!vendor || vendor.status !== "APPROVED") {
+      return bad("Ce vendeur n'est plus disponible.", 404);
+    }
 
-  const [orders, grouped] = await Promise.all([
-    db.order.findMany({
-      where: current === "ALL" ? mine : { ...mine, status: current },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: { items: true },
-    }),
-    db.order.groupBy({ by: ["status"], where: mine, _count: { _all: true } }),
-  ]);
+    // Les produits doivent appartenir à CE vendeur ; les prix viennent de la base
+    const products = await db.product.findMany({
+      where: { id: { in: Array.from(quantities.keys()) }, vendorId: vendor.id },
+      select: { id: true, name: true, price: true },
+    });
+    if (products.length !== quantities.size) {
+      return bad("Un produit de votre panier n'est plus disponible. Actualisez votre panier.");
+    }
 
-  const counts: Record<string, number> = {};
-  let total = 0;
-  for (const g of grouped) {
-    counts[g.status] = g._count._all;
-    total += g._count._all;
+    const lines = products.map((p) => ({
+      productId: p.id,
+      nameSnapshot: p.name,
+      unitPriceFcfa: parseFcfa(p.price),
+      quantity: quantities.get(p.id) as number,
+    }));
+
+    if (lines.some((l) => l.unitPriceFcfa <= 0)) {
+      return bad("Un produit n'a pas de prix : contactez directement le vendeur.");
+    }
+
+    const totalFcfa = lines.reduce((sum, l) => sum + l.unitPriceFcfa * l.quantity, 0);
+    const buyerId = await getSessionUserId();
+
+    // La référence est unique en base : on réessaie en cas de collision (très rare)
+    let reference = "";
+    let created = false;
+    for (let attempt = 0; attempt < 5 && !created; attempt++) {
+      reference = newReference();
+      try {
+        await db.order.create({
+          data: {
+            reference,
+            vendorId: vendor.id,
+            vendorName: vendor.name,
+            buyerId,
+            buyerName,
+            buyerPhone,
+            deliveryCity,
+            deliveryAddress,
+            note: note || null,
+            totalFcfa,
+            items: { create: lines },
+          },
+        });
+        created = true;
+      } catch (e) {
+        if ((e as { code?: string }).code !== "P2002") throw e;
+      }
+    }
+    if (!created) return bad("Impossible d'enregistrer la commande. Réessayez.", 500);
+
+    // Le client n'est jamais mis en contact avec le vendeur : c'est la plateforme qui le recontacte.
+    return NextResponse.json({ reference, totalFcfa }, { status: 201 });
+  } catch (error) {
+    console.error("Erreur commande :", error);
+    return bad("Une erreur est survenue. Réessayez dans un instant.", 500);
   }
-  counts.ALL = total;
-
-  return (
-    <>
-      <NavBar />
-
-      <main className="mx-auto max-w-3xl px-5 py-8 md:py-12">
-        <Link href="/dashboard" className="text-sm text-[#6B5F55] underline">
-          ← Mon tableau de bord
-        </Link>
-
-        <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">
-          Mes commandes
-        </h1>
-        <p className="mt-1 text-sm text-[#6B5F55]">
-          Les commandes passées par vos clients. Confirmez-les, puis marquez-les comme livrées.
-        </p>
-
-        <nav aria-label="Filtrer par statut" className="mt-5 flex flex-wrap gap-2">
-          {TABS.map((t) => (
-            <Link
-              key={t.value}
-              href={`/dashboard/orders?status=${t.value}`}
-              aria-current={current === t.value ? "page" : undefined}
-              className={`rounded-full px-4 py-2 text-sm font-medium ${
-                current === t.value
-                  ? "bg-[#21150F] text-white"
-                  : "border border-[#E5DDD2] bg-white text-[#6B5F55]"
-              }`}
-            >
-              {t.label} ({counts[t.value] ?? 0})
-            </Link>
-          ))}
-        </nav>
-
-        {orders.length === 0 ? (
-          <p className="mt-8 text-[#6B5F55]">Aucune commande dans cette catégorie.</p>
-        ) : (
-          <ul className="mt-6 space-y-4">
-            {orders.map((o) => (
-              <li key={o.id} className="rounded-2xl border border-[#E5DDD2] bg-white p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-lg font-semibold">{o.reference}</h2>
-                    <p className="text-sm text-[#6B5F55]">
-                      {o.createdAt.toLocaleString("fr-FR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                        timeZone: "Africa/Abidjan",
-                      })}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${BADGE[o.status]}`}
-                  >
-                    {LABEL[o.status]}
-                  </span>
-                </div>
-
-                <ul className="mt-4 divide-y divide-[#EFE8DC] rounded-xl bg-[#FBF8F2] px-4">
-                  {o.items.map((i) => (
-                    <li key={i.id} className="flex justify-between gap-4 py-2 text-sm">
-                      <span>
-                        {i.quantity} × {i.nameSnapshot}
-                      </span>
-                      <span className="shrink-0 font-medium">
-                        {formatFcfa(i.unitPriceFcfa * i.quantity)}
-                      </span>
-                    </li>
-                  ))}
-                  <li className="flex justify-between gap-4 py-2 text-sm font-semibold">
-                    <span>Total à encaisser</span>
-                    <span>{formatFcfa(o.totalFcfa)}</span>
-                  </li>
-                </ul>
-
-                <div className="mt-4 text-sm text-[#4A3F36]">
-                  <p>
-                    <strong>{o.buyerName}</strong> · {o.buyerPhone}
-                  </p>
-                  <p>
-                    {o.deliveryAddress}, {o.deliveryCity}
-                  </p>
-                  {o.note && <p className="mt-1 text-[#6B5F55]">Note : {o.note}</p>}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {ACTIONS[o.status].map((a) => (
-                    <form key={a.status} action={setMyOrderStatus}>
-                      <input type="hidden" name="id" value={o.id} />
-                      <input type="hidden" name="status" value={a.status} />
-                      <button
-                        type="submit"
-                        className={
-                          a.primary
-                            ? "rounded-full bg-[#0F7A40] px-4 py-2 text-sm font-semibold text-white"
-                            : BTN
-                        }
-                      >
-                        {a.label}
-                      </button>
-                    </form>
-                  ))}
-
-                  <a
-                    href={`https://wa.me/${toIntlDigits(o.buyerPhone)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={BTN}
-                  >
-                    Écrire au client
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </>
-  );
 }
