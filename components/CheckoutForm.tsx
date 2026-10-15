@@ -1,244 +1,217 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-
-import { useCart, type VendorGroup } from "@/components/CartProvider";
-import CheckoutForm, { type OrderDone } from "@/components/CheckoutForm";
+import { useEffect, useState } from "react";
+import { VILLES } from "@/lib/constants";
 import { formatFcfa } from "@/lib/format";
+import type { VendorGroup } from "@/components/CartProvider";
 
-const FOCUS =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]";
+export type OrderDone = {
+  reference: string;
+  totalFcfa: number;
+  vendorName: string;
+};
 
-const STEP_BTN = `flex h-11 w-11 items-center justify-center rounded-full border border-[#D9CFC1] bg-white text-xl transition hover:bg-[#F4EFE7] ${FOCUS}`;
+const STORAGE_KEY = "annuairecafe-buyer";
 
-function plural(n: number, word: string) {
-  return `${n} ${word}${n > 1 ? "s" : ""}`;
-}
+const FIELD =
+  "h-12 w-full rounded-xl border border-[#D9CFC1] bg-white px-4 text-base text-[#18120E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B78B42]";
 
-export default function CartView() {
-  const { ready, groups, total, count, updateQuantity, removeFromCart, clearCart } =
-    useCart();
+export default function CheckoutForm({
+  group,
+  onDone,
+  onCancel,
+}: {
+  group: VendorGroup;
+  onDone: (info: OrderDone) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  // Vendeur dont le formulaire de commande est ouvert
-  const [openVendor, setOpenVendor] = useState<string | null>(null);
-  // Dernière commande enregistrée (affichée en haut de la page)
-  const [done, setDone] = useState<OrderDone | null>(null);
+  // Préremplissage avec les coordonnées de la dernière commande (sur cet appareil)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+      if (saved && typeof saved === "object") {
+        if (typeof saved.name === "string") setName(saved.name);
+        if (typeof saved.phone === "string") setPhone(saved.phone);
+        if (typeof saved.city === "string") setCity(saved.city);
+        if (typeof saved.address === "string") setAddress(saved.address);
+      }
+    } catch {
+      /* rien à préremplir */
+    }
+  }, []);
 
-  function handleDone(group: VendorGroup, info: OrderDone) {
-    // La commande est enregistrée : on retire du panier les produits de ce vendeur
-    group.items.forEach((item) => removeFromCart(item.productId, item.vendorId));
-    setOpenVendor(null);
-    setDone(info);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setError("");
+    setSubmitting(true);
+
+    try {
+      // Seuls les identifiants et les quantités sont envoyés : le serveur recalcule les prix.
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vendorId: group.vendorId,
+          items: group.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          buyerName: name,
+          buyerPhone: phone,
+          deliveryCity: city,
+          deliveryAddress: address,
+          note,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.error ?? "La commande n'a pas pu être enregistrée. Réessayez.");
+        return;
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, phone, city, address }));
+      } catch {
+        /* sans importance */
+      }
+
+      onDone({
+        reference: data.reference,
+        totalFcfa: data.totalFcfa,
+        vendorName: group.vendorName,
+      });
+    } catch {
+      setError("Connexion impossible. Vérifiez votre réseau, puis réessayez.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
+  const label = "mb-1.5 block text-sm font-medium text-[#18120E]";
+
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10 md:py-14">
-      <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
-        Mon panier
-      </h1>
+    <form onSubmit={submit} className="space-y-4 border-t border-[#EFE8DC] p-5">
+      <h3 className="font-semibold">Vos coordonnées de livraison</h3>
 
-      {done && (
-        <section
-          role="status"
-          className="mt-6 rounded-2xl border border-[#BFE3CC] bg-[#EEF9F2] p-5"
-        >
-          <p className="text-lg font-semibold text-[#0F5A31]">
-            ✓ Commande {done.reference} enregistrée
-          </p>
-          <p className="mt-2 text-[#2F4A3A]">
-            Total : <strong>{formatFcfa(done.totalFcfa)}</strong>. Merci ! Annuaire Café CI vous
-            appelle bientôt pour confirmer votre commande et organiser la livraison. Le paiement se
-            fait à la livraison.
-          </p>
-          <p className="mt-3 text-sm text-[#2F4A3A]">
-            Gardez votre référence : <strong>{done.reference}</strong>.
-          </p>
-          <button
-            type="button"
-            onClick={() => setDone(null)}
-            className={`mt-4 rounded-full border border-[#9CC9AE] px-5 py-3 font-medium text-[#0F5A31] transition hover:bg-white ${FOCUS}`}
-          >
-            Fermer
-          </button>
-        </section>
-      )}
-
-      {!ready ? (
-        <div
-          className="mt-8 h-40 animate-pulse rounded-2xl bg-[#F4EFE7] motion-reduce:animate-none"
-          aria-busy="true"
+      <div>
+        <label htmlFor={`name-${group.vendorId}`} className={label}>
+          Nom et prénom
+        </label>
+        <input
+          id={`name-${group.vendorId}`}
+          required
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={80}
+          className={FIELD}
         />
-      ) : groups.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-[#E5DDD2] bg-white p-10 text-center">
-          <p className="text-lg font-medium">Votre panier est vide.</p>
-          <p className="mt-2 text-[#6B5F55]">
-            Parcourez les commerces et ajoutez vos cafés préférés.
-          </p>
-          <Link
-            href="/"
-            className={`mt-6 inline-flex rounded-full bg-[#21150F] px-6 py-3 font-semibold text-white ${FOCUS}`}
-          >
-            Découvrir les commerces
-          </Link>
-        </div>
-      ) : (
-        <>
-          <p className="mt-2 text-[#6B5F55]">
-            {plural(count, "article")} chez {plural(groups.length, "vendeur")}
-          </p>
+      </div>
 
-          <div className="mt-8 space-y-6">
-            {groups.map((group) => (
-              <section
-                key={group.vendorId}
-                aria-labelledby={`vendor-${group.vendorId}`}
-                className="overflow-hidden rounded-2xl border border-[#E5DDD2] bg-white"
-              >
-                <header className="flex items-center justify-between gap-3 border-b border-[#EFE8DC] px-5 py-4">
-                  <h2 id={`vendor-${group.vendorId}`} className="truncate font-semibold">
-                    <Link
-                      href={`/vendors/${group.vendorId}`}
-                      className={`hover:underline ${FOCUS}`}
-                    >
-                      {group.vendorName || "Vendeur"}
-                    </Link>
-                  </h2>
-                  <p className="shrink-0 text-sm text-[#6B5F55]">
-                    Sous-total : <strong>{formatFcfa(group.subtotal)}</strong>
-                  </p>
-                </header>
+      <div>
+        <label htmlFor={`phone-${group.vendorId}`} className={label}>
+          Téléphone (pour vous joindre)
+        </label>
+        <input
+          id={`phone-${group.vendorId}`}
+          required
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="07 00 00 00 00"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          maxLength={30}
+          className={FIELD}
+        />
+      </div>
 
-                <ul className="divide-y divide-[#EFE8DC]">
-                  {group.items.map((item) => (
-                    <li key={`${item.vendorId}-${item.productId}`} className="flex gap-4 p-5">
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
-                        {item.image ? (
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            sizes="80px"
-                            className="object-contain p-1"
-                            unoptimized
-                          />
-                        ) : (
-                          <span
-                            aria-hidden="true"
-                            className="flex h-full w-full items-center justify-center text-3xl"
-                          >
-                            ☕
-                          </span>
-                        )}
-                      </div>
+      <div>
+        <label htmlFor={`city-${group.vendorId}`} className={label}>
+          Ville
+        </label>
+        <select
+          id={`city-${group.vendorId}`}
+          required
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          className={FIELD}
+        >
+          <option value="">Choisir la ville</option>
+          {VILLES.map((ville) => (
+            <option key={ville} value={ville}>
+              {ville}
+            </option>
+          ))}
+        </select>
+      </div>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 font-medium leading-snug">{item.name}</p>
-                        <p className="mt-1 text-sm text-[#6B5F55]">
-                          {formatFcfa(item.price)} l’unité
-                        </p>
+      <div>
+        <label htmlFor={`address-${group.vendorId}`} className={label}>
+          Adresse de livraison (quartier, repère)
+        </label>
+        <textarea
+          id={`address-${group.vendorId}`}
+          required
+          rows={2}
+          autoComplete="street-address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          maxLength={300}
+          className={`${FIELD} h-auto py-3`}
+        />
+      </div>
 
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              aria-label={`Retirer une unité de ${item.name}`}
-                              onClick={() =>
-                                updateQuantity(item.productId, item.vendorId, item.quantity - 1)
-                              }
-                              className={STEP_BTN}
-                            >
-                              −
-                            </button>
-                            <span
-                              className="w-8 text-center font-semibold"
-                              aria-label={`Quantité : ${item.quantity}`}
-                            >
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`Ajouter une unité de ${item.name}`}
-                              onClick={() =>
-                                updateQuantity(item.productId, item.vendorId, item.quantity + 1)
-                              }
-                              className={STEP_BTN}
-                            >
-                              +
-                            </button>
-                          </div>
+      <div>
+        <label htmlFor={`note-${group.vendorId}`} className={label}>
+          Note pour le vendeur (facultatif)
+        </label>
+        <textarea
+          id={`note-${group.vendorId}`}
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={300}
+          className={`${FIELD} h-auto py-3`}
+        />
+      </div>
 
-                          <p className="font-semibold">
-                            {formatFcfa(item.price * item.quantity)}
-                          </p>
-                        </div>
+      <p className="text-sm text-[#6B5F55]">
+        Total : <strong>{formatFcfa(group.subtotal)}</strong>. Nous vous appelons pour confirmer
+        votre commande et organiser la livraison. Paiement à la livraison.
+      </p>
 
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(item.productId, item.vendorId)}
-                          className={`mt-3 text-sm text-red-800 underline ${FOCUS}`}
-                        >
-                          Retirer
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                {openVendor === group.vendorId ? (
-                  <CheckoutForm
-                    group={group}
-                    onDone={(info) => handleDone(group, info)}
-                    onCancel={() => setOpenVendor(null)}
-                  />
-                ) : (
-                  <div className="border-t border-[#EFE8DC] p-5">
-                    <button
-                      type="button"
-                      onClick={() => setOpenVendor(group.vendorId)}
-                      className={`w-full rounded-full bg-[#D8B46A] px-6 py-3.5 font-semibold text-black transition hover:bg-[#C9A052] ${FOCUS}`}
-                    >
-                      Commander chez {group.vendorName || "ce vendeur"}
-                    </button>
-                  </div>
-                )}
-              </section>
-            ))}
-          </div>
-
-          <div className="mt-8 rounded-2xl border border-[#E5DDD2] bg-white p-5">
-            <div className="flex items-center justify-between text-lg">
-              <span>Total</span>
-              <strong>{formatFcfa(total)}</strong>
-            </div>
-
-            {groups.length > 1 && (
-              <p className="mt-3 text-sm text-[#6B5F55]">
-                Votre panier contient des produits de {groups.length} vendeurs : une commande
-                séparée est passée avec chacun, et chaque vendeur prépare et livre la sienne.
-              </p>
-            )}
-            <p className="mt-3 text-sm text-[#6B5F55]">
-              Les prix sont vérifiés au moment de la commande.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm("Vider tout le panier ?")) {
-                  clearCart();
-                  setOpenVendor(null);
-                }
-              }}
-              className={`mt-5 rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
-            >
-              Vider le panier
-            </button>
-          </div>
-        </>
+      {error && (
+        <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </p>
       )}
-    </main>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-full bg-[#21150F] px-6 py-3 font-semibold text-white transition hover:bg-black disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]"
+        >
+          {submitting ? "Envoi en cours…" : "Valider ma commande"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={submitting}
+          className="rounded-full border border-[#D9CFC1] px-5 py-3 font-medium transition hover:bg-[#F4EFE7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B78B42]"
+        >
+          Annuler
+        </button>
+      </div>
+    </form>
   );
 }
