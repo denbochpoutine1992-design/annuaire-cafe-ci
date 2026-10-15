@@ -1,127 +1,163 @@
-import { NextRequest, NextResponse } from "next/server";
-import { randomInt } from "crypto";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import NavBar from "@/components/NavBar";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
-import { parseFcfa } from "@/lib/format";
-import { isValidPhone } from "@/lib/phone";
+import { formatFcfa } from "@/lib/format";
 
-const MAX_LINES = 30;
-const MAX_QTY = 99;
-const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O ni 1/I
+export const dynamic = "force-dynamic";
 
-function text(value: unknown, max: number) {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
+export const metadata = {
+  title: "Mes ventes",
+};
 
-function newReference() {
-  let s = "";
-  for (let i = 0; i < 6; i++) s += REF_ALPHABET[randomInt(REF_ALPHABET.length)];
-  return `ACI-${s}`;
-}
+const TABS = [
+  { value: "NEW", label: "Reçues" },
+  { value: "CONFIRMED", label: "En préparation" },
+  { value: "DELIVERED", label: "Livrées" },
+  { value: "CANCELLED", label: "Annulées" },
+  { value: "ALL", label: "Toutes" },
+] as const;
 
-function bad(error: string, status = 400) {
-  return NextResponse.json({ error }, { status });
-}
+const LABEL: Record<string, string> = {
+  NEW: "Reçue",
+  CONFIRMED: "En préparation",
+  DELIVERED: "Livrée",
+  CANCELLED: "Annulée",
+};
 
-export async function POST(req: NextRequest) {
-  try {
-    let body: Record<string, unknown>;
-    try {
-      body = await req.json();
-    } catch {
-      return bad("Requête invalide.");
-    }
+const BADGE: Record<string, string> = {
+  NEW: "bg-amber-100 text-amber-900",
+  CONFIRMED: "bg-blue-100 text-blue-900",
+  DELIVERED: "bg-green-100 text-green-900",
+  CANCELLED: "bg-zinc-200 text-zinc-700",
+};
 
-    const vendorId = text(body.vendorId, 80);
-    const buyerName = text(body.buyerName, 80);
-    const buyerPhone = text(body.buyerPhone, 30);
-    const deliveryCity = text(body.deliveryCity, 80);
-    const deliveryAddress = text(body.deliveryAddress, 300);
-    const note = text(body.note, 300);
+/**
+ * Espace vendeur en LECTURE SEULE : il voit ce qui a été vendu, jamais l'identité
+ * ni les coordonnées du client. La plateforme prépare et livre les commandes.
+ */
+export default async function MySales({
+  searchParams,
+}: {
+  searchParams: { status?: string };
+}) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login?next=/dashboard/orders");
 
-    if (!vendorId) return bad("Vendeur manquant.");
-    if (buyerName.length < 2) return bad("Indiquez votre nom.");
-    if (!isValidPhone(buyerPhone)) return bad("Indiquez un numéro de téléphone valide.");
-    if (!deliveryCity) return bad("Choisissez votre ville.");
-    if (deliveryAddress.length < 5) return bad("Indiquez votre adresse de livraison.");
+  const current = TABS.some((t) => t.value === searchParams.status)
+    ? (searchParams.status as (typeof TABS)[number]["value"])
+    : "NEW";
 
-    // Quantités par produit (les doublons sont additionnés). Les prix reçus sont IGNORÉS.
-    const rawItems = Array.isArray(body.items) ? body.items : [];
-    if (rawItems.length === 0 || rawItems.length > MAX_LINES) return bad("Panier invalide.");
+  const mine = { vendor: { ownerId: userId } };
 
-    const quantities = new Map<string, number>();
-    for (const raw of rawItems) {
-      const r = (raw ?? {}) as Record<string, unknown>;
-      const productId = text(r.productId, 80);
-      const qty = Math.floor(Number(r.quantity));
-      if (!productId || !Number.isFinite(qty) || qty < 1) return bad("Panier invalide.");
-      quantities.set(productId, Math.min((quantities.get(productId) ?? 0) + qty, MAX_QTY));
-    }
+  const [orders, grouped] = await Promise.all([
+    db.order.findMany({
+      where: current === "ALL" ? mine : { ...mine, status: current },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      // Aucun champ « acheteur » n'est demandé à la base : il ne peut pas fuiter.
+      select: {
+        id: true,
+        reference: true,
+        status: true,
+        createdAt: true,
+        items: {
+          select: { id: true, nameSnapshot: true, unitPriceFcfa: true, quantity: true },
+        },
+      },
+    }),
+    db.order.groupBy({ by: ["status"], where: mine, _count: { _all: true } }),
+  ]);
 
-    // Le vendeur doit exister et être approuvé
-    const vendor = await db.vendor.findUnique({
-      where: { id: vendorId },
-      select: { id: true, name: true, status: true },
-    });
-    if (!vendor || vendor.status !== "APPROVED") {
-      return bad("Ce vendeur n'est plus disponible.", 404);
-    }
-
-    // Les produits doivent appartenir à CE vendeur ; les prix viennent de la base
-    const products = await db.product.findMany({
-      where: { id: { in: Array.from(quantities.keys()) }, vendorId: vendor.id },
-      select: { id: true, name: true, price: true },
-    });
-    if (products.length !== quantities.size) {
-      return bad("Un produit de votre panier n'est plus disponible. Actualisez votre panier.");
-    }
-
-    const lines = products.map((p) => ({
-      productId: p.id,
-      nameSnapshot: p.name,
-      unitPriceFcfa: parseFcfa(p.price),
-      quantity: quantities.get(p.id) as number,
-    }));
-
-    if (lines.some((l) => l.unitPriceFcfa <= 0)) {
-      return bad("Un produit n'a pas de prix : contactez directement le vendeur.");
-    }
-
-    const totalFcfa = lines.reduce((sum, l) => sum + l.unitPriceFcfa * l.quantity, 0);
-    const buyerId = await getSessionUserId();
-
-    // La référence est unique en base : on réessaie en cas de collision (très rare)
-    let reference = "";
-    let created = false;
-    for (let attempt = 0; attempt < 5 && !created; attempt++) {
-      reference = newReference();
-      try {
-        await db.order.create({
-          data: {
-            reference,
-            vendorId: vendor.id,
-            vendorName: vendor.name,
-            buyerId,
-            buyerName,
-            buyerPhone,
-            deliveryCity,
-            deliveryAddress,
-            note: note || null,
-            totalFcfa,
-            items: { create: lines },
-          },
-        });
-        created = true;
-      } catch (e) {
-        if ((e as { code?: string }).code !== "P2002") throw e;
-      }
-    }
-    if (!created) return bad("Impossible d'enregistrer la commande. Réessayez.", 500);
-
-    // Le client n'est jamais mis en contact avec le vendeur : c'est la plateforme qui le recontacte.
-    return NextResponse.json({ reference, totalFcfa }, { status: 201 });
-  } catch (error) {
-    console.error("Erreur commande :", error);
-    return bad("Une erreur est survenue. Réessayez dans un instant.", 500);
+  const counts: Record<string, number> = {};
+  let total = 0;
+  for (const g of grouped) {
+    counts[g.status] = g._count._all;
+    total += g._count._all;
   }
+  counts.ALL = total;
+
+  return (
+    <>
+      <NavBar />
+
+      <main className="mx-auto max-w-3xl px-5 py-8 md:py-12">
+        <Link href="/dashboard" className="text-sm text-[#6B5F55] underline">
+          ← Mon tableau de bord
+        </Link>
+
+        <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">Mes ventes</h1>
+        <p className="mt-1 text-sm text-[#6B5F55]">
+          Les produits de vos commerces vendus sur Annuaire Café CI. La plateforme prépare et livre
+          les commandes.
+        </p>
+
+        <nav aria-label="Filtrer par statut" className="mt-5 flex flex-wrap gap-2">
+          {TABS.map((t) => (
+            <Link
+              key={t.value}
+              href={`/dashboard/orders?status=${t.value}`}
+              aria-current={current === t.value ? "page" : undefined}
+              className={`rounded-full px-4 py-2 text-sm font-medium ${
+                current === t.value
+                  ? "bg-[#21150F] text-white"
+                  : "border border-[#E5DDD2] bg-white text-[#6B5F55]"
+              }`}
+            >
+              {t.label} ({counts[t.value] ?? 0})
+            </Link>
+          ))}
+        </nav>
+
+        {orders.length === 0 ? (
+          <p className="mt-8 text-[#6B5F55]">Aucune vente dans cette catégorie.</p>
+        ) : (
+          <ul className="mt-6 space-y-4">
+            {orders.map((o) => {
+              const amount = o.items.reduce((sum, i) => sum + i.unitPriceFcfa * i.quantity, 0);
+              return (
+                <li key={o.id} className="rounded-2xl border border-[#E5DDD2] bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-semibold">{o.reference}</h2>
+                      <p className="text-sm text-[#6B5F55]">
+                        {o.createdAt.toLocaleString("fr-FR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                          timeZone: "Africa/Abidjan",
+                        })}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${BADGE[o.status]}`}
+                    >
+                      {LABEL[o.status]}
+                    </span>
+                  </div>
+
+                  <ul className="mt-4 divide-y divide-[#EFE8DC] rounded-xl bg-[#FBF8F2] px-4">
+                    {o.items.map((i) => (
+                      <li key={i.id} className="flex justify-between gap-4 py-2 text-sm">
+                        <span>
+                          {i.quantity} × {i.nameSnapshot}
+                        </span>
+                        <span className="shrink-0 font-medium">
+                          {formatFcfa(i.unitPriceFcfa * i.quantity)}
+                        </span>
+                      </li>
+                    ))}
+                    <li className="flex justify-between gap-4 py-2 text-sm font-semibold">
+                      <span>Montant des ventes</span>
+                      <span>{formatFcfa(amount)}</span>
+                    </li>
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </main>
+    </>
+  );
 }
