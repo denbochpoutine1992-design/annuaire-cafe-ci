@@ -87,7 +87,7 @@ export default function DashboardPage() {
               Mon tableau de bord
             </h1>
             <p className="mt-2 text-sm text-[#78716C]">
-              Gérez vos commerces, vos produits et vos commandes sur Annuaire Café CI.
+              Gérez vos commerces et vos produits, et suivez vos ventes sur Annuaire Café CI.
             </p>
           </div>
 
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <strong>
               {newOrders} {newOrders > 1 ? "nouvelles commandes" : "nouvelle commande"}
             </strong>{" "}
-            à traiter. Appuyez ici pour {newOrders > 1 ? "les" : "la"} confirmer.
+            reçue{newOrders > 1 ? "s" : ""} : appuyez ici pour {newOrders > 1 ? "les" : "la"} consulter.
           </Link>
         )}
 
