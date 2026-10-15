@@ -49,31 +49,20 @@ export default function CartView() {
             ✓ Commande {done.reference} enregistrée
           </p>
           <p className="mt-2 text-[#2F4A3A]">
-            Total : <strong>{formatFcfa(done.totalFcfa)}</strong>. Dernière étape : envoyez
-            votre commande à {done.vendorName} sur WhatsApp. C’est le vendeur qui la confirme
-            et organise la livraison.
+            Total : <strong>{formatFcfa(done.totalFcfa)}</strong>. Merci ! Annuaire Café CI vous
+            appelle bientôt pour confirmer votre commande et organiser la livraison. Le paiement se
+            fait à la livraison.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a
-              href={done.whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center justify-center rounded-full bg-[#0F7A40] px-6 py-3 font-semibold text-white transition hover:bg-[#0B6333] ${FOCUS}`}
-            >
-              Envoyer sur WhatsApp
-              <span className="sr-only"> (nouvel onglet)</span>
-            </a>
-            <button
-              type="button"
-              onClick={() => setDone(null)}
-              className={`rounded-full border border-[#9CC9AE] px-5 py-3 font-medium text-[#0F5A31] transition hover:bg-white ${FOCUS}`}
-            >
-              Fermer
-            </button>
-          </div>
           <p className="mt-3 text-sm text-[#2F4A3A]">
             Gardez votre référence : <strong>{done.reference}</strong>.
           </p>
+          <button
+            type="button"
+            onClick={() => setDone(null)}
+            className={`mt-4 rounded-full border border-[#9CC9AE] px-5 py-3 font-medium text-[#0F5A31] transition hover:bg-white ${FOCUS}`}
+          >
+            Fermer
+          </button>
         </section>
       )}
 
