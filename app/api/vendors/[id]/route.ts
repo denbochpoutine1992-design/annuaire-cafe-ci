@@ -41,8 +41,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   // Une fiche en attente ou refusée n'est visible que par eux.
   if (vendor.status !== "APPROVED" && !privileged) return bad("Introuvable.", 404);
 
-  // Le public ne reçoit ni téléphone, ni position, ni quartier.
-  return NextResponse.json(privileged ? vendor : toPublicVendor(vendor));
+  // Le propriétaire et l'administrateur voient tous les produits (avec leur statut).
+  if (privileged) return NextResponse.json(vendor);
+
+  // Le public ne reçoit ni téléphone, ni position, ni quartier, et seulement les produits approuvés.
+  return NextResponse.json({
+    ...toPublicVendor(vendor),
+    products: vendor.products.filter((p) => p.status === "APPROVED"),
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
