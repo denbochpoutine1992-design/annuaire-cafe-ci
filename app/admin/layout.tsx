@@ -12,6 +12,7 @@ export const metadata = {
 const LINKS = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/vendors", label: "Commerces" },
+  { href: "/admin/products", label: "Produits" },
   { href: "/admin/orders", label: "Commandes" },
   { href: "/admin/reviews", label: "Avis" },
 ];
@@ -19,8 +20,11 @@ const LINKS = [
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin();
 
-  // Nombre de commandes à traiter, affiché sur le lien « Commandes »
-  const newOrders = await db.order.count({ where: { status: "NEW" } });
+  // Compteurs affichés sur les liens « Commandes » et « Produits »
+  const [newOrders, pendingProducts] = await Promise.all([
+    db.order.count({ where: { status: "NEW" } }),
+    db.product.count({ where: { status: "PENDING" } }),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#F7F3EC] text-[#18120E]">
@@ -38,6 +42,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 {l.href === "/admin/orders" && newOrders > 0 && (
                   <span className="ml-1.5 rounded-full bg-[#B78B42] px-2 py-0.5 text-xs font-bold text-black">
                     {newOrders}
+                  </span>
+                )}
+                {l.href === "/admin/products" && pendingProducts > 0 && (
+                  <span className="ml-1.5 rounded-full bg-[#B78B42] px-2 py-0.5 text-xs font-bold text-black">
+                    {pendingProducts}
                   </span>
                 )}
               </Link>
