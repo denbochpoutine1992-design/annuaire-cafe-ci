@@ -69,7 +69,11 @@ export async function POST(req: NextRequest) {
 
     // Les produits doivent appartenir à CE vendeur ; les prix viennent de la base
     const products = await db.product.findMany({
-      where: { id: { in: Array.from(quantities.keys()) }, vendorId: vendor.id },
+      where: {
+        id: { in: Array.from(quantities.keys()) },
+        vendorId: vendor.id,
+        status: "APPROVED", // un produit non validé ne peut pas être commandé
+      },
       select: { id: true, name: true, price: true },
     });
     if (products.length !== quantities.size) {
