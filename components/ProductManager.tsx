@@ -9,9 +9,15 @@ type Product = {
   description: string | null;
   price: string | null;
   photoUrl: string | null;
+  status?: "PENDING" | "APPROVED" | "REJECTED";
 };
 
 const emptyDraft = { name: "", description: "", price: "", photoUrl: "" };
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "En attente de validation",
+  REJECTED: "Refusé",
+};
 
 export default function ProductManager({
   vendorId,
@@ -27,6 +33,7 @@ export default function ProductManager({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState(emptyDraft);
+  const [editError, setEditError] = useState("");
 
   async function addProduct(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +61,7 @@ export default function ProductManager({
 
   function startEdit(p: Product) {
     setEditingId(p.id);
+    setEditError("");
     setEditDraft({
       name: p.name,
       description: p.description || "",
@@ -63,12 +71,17 @@ export default function ProductManager({
   }
 
   async function saveEdit(id: string) {
+    setEditError("");
     const res = await fetch(`/api/vendors/${vendorId}/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editDraft),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEditError(data.error || "Une erreur est survenue.");
+      return;
+    }
     const updated = await res.json();
     onChange(products.map((p) => (p.id === id ? updated : p)));
     setEditingId(null);
@@ -76,12 +89,20 @@ export default function ProductManager({
 
   async function deleteProduct(id: string) {
     if (!confirm("Supprimer cet article ?")) return;
-    await fetch(`/api/vendors/${vendorId}/products/${id}`, { method: "DELETE" });
-    onChange(products.filter((p) => p.id !== id));
+    const res = await fetch(`/api/vendors/${vendorId}/products/${id}`, { method: "DELETE" });
+    if (res.ok) onChange(products.filter((p) => p.id !== id));
   }
 
   return (
     <div>
+      <p
+        className="mb-4 rounded-lg px-3 py-2 text-xs"
+        style={{ background: "#FFF7ED", color: "#9A3412" }}
+      >
+        Vos nouveaux articles et chaque modification (nom, prix, photo, description) sont visibles
+        par les clients après validation par Annuaire Café CI.
+      </p>
+
       <div className="flex flex-col gap-3">
         {products.length === 0 && (
           <p className="text-sm" style={{ color: "#78716C" }}>
@@ -116,6 +137,11 @@ export default function ProductManager({
                   rows={2}
                   className="px-3 py-2 rounded-lg text-sm border border-line resize-none"
                 />
+                {editError && (
+                  <p className="text-xs" style={{ color: "#C2410C" }}>
+                    {editError}
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => saveEdit(p.id)}
@@ -143,6 +169,17 @@ export default function ProductManager({
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm truncate">{p.name}</div>
+                  {p.status && p.status !== "APPROVED" && (
+                    <span
+                      className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        background: p.status === "PENDING" ? "#FEF3C7" : "#FEE2E2",
+                        color: p.status === "PENDING" ? "#92400E" : "#991B1B",
+                      }}
+                    >
+                      {STATUS_LABEL[p.status]}
+                    </span>
+                  )}
                   {p.price && (
                     <div className="font-mono text-xs mt-0.5" style={{ color: "#C2410C" }}>
                       {p.price}
