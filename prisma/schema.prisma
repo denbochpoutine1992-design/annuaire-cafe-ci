@@ -19,6 +19,12 @@ enum ProductStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  UNPAID
+  TO_VERIFY
+  PAID
+}
+
 enum OrderStatus {
   NEW
   CONFIRMED
@@ -114,12 +120,17 @@ model Order {
   note            String?
   status          OrderStatus @default(NEW)
   totalFcfa       Int
+  paymentMethod   String?                    // ORANGE, MTN, MOOV ou WAVE
+  paymentStatus   PaymentStatus @default(UNPAID)
+  paymentRef      String?                    // identifiant de transaction saisi par le client
+  paidAt          DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
 
   @@index([vendorId])
   @@index([status])
+  @@index([paymentStatus])
   @@index([createdAt])
 }
 
