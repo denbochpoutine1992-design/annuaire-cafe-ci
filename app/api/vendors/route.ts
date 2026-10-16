@@ -56,7 +56,10 @@ export async function GET(req: NextRequest) {
     include: {
       photos: { take: 1, orderBy: { createdAt: "asc" } },
       reviews: { select: { rating: true } },
-      products: { select: { id: true, name: true, price: true, photoUrl: true } },
+      products: {
+        where: { status: "APPROVED" },
+        select: { id: true, name: true, price: true, photoUrl: true },
+      },
     },
     orderBy: [{ createdAt: "desc" }],
   });
