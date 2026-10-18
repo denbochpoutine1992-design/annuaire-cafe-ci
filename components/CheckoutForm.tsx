@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { VILLES } from "@/lib/constants";
 import { formatFcfa } from "@/lib/format";
 import type { VendorGroup } from "@/components/CartProvider";
+import type { PaymentInstructions, PaymentMethod } from "@/lib/payment";
 
 export type OrderDone = {
   reference: string;
   totalFcfa: number;
   vendorName: string;
+  buyerPhone: string;
+  payment: PaymentInstructions | null;
 };
 
 const STORAGE_KEY = "annuairecafe-buyer";
@@ -18,10 +21,12 @@ const FIELD =
 
 export default function CheckoutForm({
   group,
+  methods = [{ id: "CASH", label: "Payer à la livraison" }],
   onDone,
   onCancel,
 }: {
   group: VendorGroup;
+  methods?: PaymentMethod[];
   onDone: (info: OrderDone) => void;
   onCancel: () => void;
 }) {
@@ -30,6 +35,7 @@ export default function CheckoutForm({
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
+  const [method, setMethod] = useState<string>(methods[0]?.id ?? "CASH");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,6 +73,7 @@ export default function CheckoutForm({
           deliveryCity: city,
           deliveryAddress: address,
           note,
+          paymentMethod: method,
         }),
       });
 
@@ -87,6 +94,8 @@ export default function CheckoutForm({
         reference: data.reference,
         totalFcfa: data.totalFcfa,
         vendorName: group.vendorName,
+        buyerPhone: phone,
+        payment: data.payment ?? null,
       });
     } catch {
       setError("Connexion impossible. Vérifiez votre réseau, puis réessayez.");
@@ -172,7 +181,7 @@ export default function CheckoutForm({
 
       <div>
         <label htmlFor={`note-${group.vendorId}`} className={label}>
-          Note pour le vendeur (facultatif)
+          Note pour la livraison (facultatif)
         </label>
         <textarea
           id={`note-${group.vendorId}`}
@@ -184,9 +193,35 @@ export default function CheckoutForm({
         />
       </div>
 
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium text-[#18120E]">Moyen de paiement</legend>
+        <div className="space-y-2">
+          {methods.map((m) => (
+            <label
+              key={m.id}
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-base ${
+                method === m.id ? "border-[#B78B42] bg-[#FFF9EA]" : "border-[#D9CFC1] bg-white"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`method-${group.vendorId}`}
+                value={m.id}
+                checked={method === m.id}
+                onChange={() => setMethod(m.id)}
+                className="h-5 w-5 accent-[#21150F]"
+              />
+              <span>{m.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <p className="text-sm text-[#6B5F55]">
-        Total : <strong>{formatFcfa(group.subtotal)}</strong>. Nous vous appelons pour confirmer
-        votre commande et organiser la livraison. Paiement à la livraison.
+        Total : <strong>{formatFcfa(group.subtotal)}</strong>.{" "}
+        {method === "CASH"
+          ? "Nous vous appelons pour confirmer votre commande et organiser la livraison. Paiement à la livraison."
+          : "Après validation, vous recevrez le numéro auquel envoyer le paiement par Mobile Money."}
       </p>
 
       {error && (
