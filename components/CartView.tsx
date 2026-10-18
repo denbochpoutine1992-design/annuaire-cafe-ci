@@ -6,6 +6,8 @@ import Link from "next/link";
 
 import { useCart, type VendorGroup } from "@/components/CartProvider";
 import CheckoutForm, { type OrderDone } from "@/components/CheckoutForm";
+import PaymentCard from "@/components/PaymentCard";
+import type { PaymentMethod } from "@/lib/payment";
 import { formatFcfa } from "@/lib/format";
 
 const FOCUS =
@@ -17,7 +19,7 @@ function plural(n: number, word: string) {
   return `${n} ${word}${n > 1 ? "s" : ""}`;
 }
 
-export default function CartView() {
+export default function CartView({ methods }: { methods?: PaymentMethod[] }) {
   const { ready, groups, total, count, updateQuantity, removeFromCart, clearCart } =
     useCart();
 
@@ -40,7 +42,16 @@ export default function CartView() {
         Mon panier
       </h1>
 
-      {done && (
+      {done && done.payment && (
+        <PaymentCard
+          reference={done.reference}
+          totalFcfa={done.totalFcfa}
+          buyerPhone={done.buyerPhone}
+          payment={done.payment}
+        />
+      )}
+
+      {done && !done.payment && (
         <section
           role="status"
           className="mt-6 rounded-2xl border border-[#BFE3CC] bg-[#EEF9F2] p-5"
@@ -56,14 +67,17 @@ export default function CartView() {
           <p className="mt-3 text-sm text-[#2F4A3A]">
             Gardez votre référence : <strong>{done.reference}</strong>.
           </p>
-          <button
-            type="button"
-            onClick={() => setDone(null)}
-            className={`mt-4 rounded-full border border-[#9CC9AE] px-5 py-3 font-medium text-[#0F5A31] transition hover:bg-white ${FOCUS}`}
-          >
-            Fermer
-          </button>
         </section>
+      )}
+
+      {done && (
+        <button
+          type="button"
+          onClick={() => setDone(null)}
+          className={`mt-3 rounded-full border border-[#D9CFC1] px-5 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
+        >
+          Fermer ce message
+        </button>
       )}
 
       {!ready ? (
@@ -190,6 +204,7 @@ export default function CartView() {
                 {openVendor === group.vendorId ? (
                   <CheckoutForm
                     group={group}
+                    methods={methods}
                     onDone={(info) => handleDone(group, info)}
                     onCancel={() => setOpenVendor(null)}
                   />
