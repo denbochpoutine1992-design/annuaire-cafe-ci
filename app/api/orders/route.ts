@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { parseFcfa } from "@/lib/format";
 import { isValidPhone } from "@/lib/phone";
+import { getAvailableMethods, getMobileInstructions } from "@/lib/payment";
 
 const MAX_LINES = 30;
 const MAX_QTY = 99;
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
     const deliveryCity = text(body.deliveryCity, 80);
     const deliveryAddress = text(body.deliveryAddress, 300);
     const note = text(body.note, 300);
+
+    // Moyen de paiement : seulement ceux que la plateforme propose (« Payer à la livraison » par défaut)
+    const paymentMethod = text(body.paymentMethod, 20) || "CASH";
+    if (!getAvailableMethods().some((m) => m.id === paymentMethod)) {
+      return bad("Ce moyen de paiement n'est pas disponible.");
+    }
 
     if (!vendorId) return bad("Vendeur manquant.");
     if (buyerName.length < 2) return bad("Indiquez votre nom.");
@@ -112,6 +119,7 @@ export async function POST(req: NextRequest) {
             deliveryAddress,
             note: note || null,
             totalFcfa,
+            paymentMethod,
             items: { create: lines },
           },
         });
@@ -123,7 +131,10 @@ export async function POST(req: NextRequest) {
     if (!created) return bad("Impossible d'enregistrer la commande. Réessayez.", 500);
 
     // Le client n'est jamais mis en contact avec le vendeur : c'est la plateforme qui le recontacte.
-    return NextResponse.json({ reference, totalFcfa }, { status: 201 });
+    // Pour Mobile Money, on renvoie le numéro et le titulaire auxquels il doit envoyer l'argent.
+    const payment = paymentMethod === "CASH" ? null : getMobileInstructions(paymentMethod);
+
+    return NextResponse.json({ reference, totalFcfa, payment }, { status: 201 });
   } catch (error) {
     console.error("Erreur commande :", error);
     return bad("Une erreur est survenue. Réessayez dans un instant.", 500);
