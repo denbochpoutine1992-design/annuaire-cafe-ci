@@ -3,10 +3,11 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { formatFcfa } from "@/lib/format";
 import { toIntlDigits } from "@/lib/phone";
-import { setOrderStatus } from "./actions";
+import { setOrderStatus, setPaymentStatus } from "./actions";
 
 const TABS = [
   { value: "NEW", label: "Nouvelles" },
+  { value: "VERIFY", label: "Paiements à vérifier" },
   { value: "CONFIRMED", label: "Confirmées" },
   { value: "DELIVERED", label: "Livrées" },
   { value: "CANCELLED", label: "Annulées" },
@@ -25,6 +26,26 @@ const BADGE: Record<string, string> = {
   CONFIRMED: "bg-blue-100 text-blue-900",
   DELIVERED: "bg-green-100 text-green-900",
   CANCELLED: "bg-zinc-200 text-zinc-700",
+};
+
+const METHOD_LABEL: Record<string, string> = {
+  CASH: "À la livraison",
+  ORANGE: "Orange Money",
+  MTN: "MTN MoMo",
+  MOOV: "Moov Money",
+  WAVE: "Wave",
+};
+
+const PAY_LABEL: Record<string, string> = {
+  UNPAID: "Non payée",
+  TO_VERIFY: "Paiement à vérifier",
+  PAID: "Payée",
+};
+
+const PAY_BADGE: Record<string, string> = {
+  UNPAID: "bg-zinc-200 text-zinc-700",
+  TO_VERIFY: "bg-amber-100 text-amber-900",
+  PAID: "bg-green-100 text-green-900",
 };
 
 const BTN =
@@ -55,9 +76,14 @@ export default async function AdminOrders({
     ? (searchParams.status as (typeof TABS)[number]["value"])
     : "NEW";
 
-  const [orders, grouped] = await Promise.all([
+  const [orders, grouped, toVerify] = await Promise.all([
     db.order.findMany({
-      where: current === "ALL" ? {} : { status: current },
+      where:
+        current === "ALL"
+          ? {}
+          : current === "VERIFY"
+          ? { paymentStatus: "TO_VERIFY" as const }
+          : { status: current },
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
@@ -66,6 +92,7 @@ export default async function AdminOrders({
       },
     }),
     db.order.groupBy({ by: ["status"], _count: { _all: true } }),
+    db.order.count({ where: { paymentStatus: "TO_VERIFY" } }),
   ]);
 
   const counts: Record<string, number> = {};
@@ -75,6 +102,7 @@ export default async function AdminOrders({
     totalCount += g._count._all;
   }
   counts.ALL = totalCount;
+  counts.VERIFY = toVerify;
 
   return (
     <div>
@@ -157,23 +185,83 @@ export default async function AdminOrders({
                 {o.note && <p className="mt-1 text-[#6B5F55]">Note : {o.note}</p>}
               </div>
 
+              {(() => {
+                const mobile = !!o.paymentMethod && o.paymentMethod !== "CASH";
+                return (
+                  <div className="mt-4 rounded-xl border border-[#E5DDD2] bg-[#FBF8F2] p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">
+                        Paiement : {METHOD_LABEL[o.paymentMethod ?? "CASH"] ?? o.paymentMethod}
+                      </span>
+                      {mobile && (
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${PAY_BADGE[o.paymentStatus]}`}
+                        >
+                          {PAY_LABEL[o.paymentStatus]}
+                        </span>
+                      )}
+                    </div>
+
+                    {mobile && o.paymentRef && (
+                      <p className="mt-2">
+                        Identifiant de transaction indiqué par le client :{" "}
+                        <strong className="break-all">{o.paymentRef}</strong>
+                      </p>
+                    )}
+
+                    {mobile && o.paymentStatus !== "PAID" && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <form action={setPaymentStatus}>
+                          <input type="hidden" name="id" value={o.id} />
+                          <input type="hidden" name="action" value="PAID" />
+                          <button
+                            type="submit"
+                            className="rounded-full bg-[#0F7A40] px-4 py-1.5 text-sm font-semibold text-white"
+                          >
+                            Paiement reçu
+                          </button>
+                        </form>
+                        {o.paymentStatus === "TO_VERIFY" && (
+                          <form action={setPaymentStatus}>
+                            <input type="hidden" name="id" value={o.id} />
+                            <input type="hidden" name="action" value="UNPAID" />
+                            <button type="submit" className={BTN}>
+                              Paiement non reçu
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="mt-4 flex flex-wrap gap-2">
-                {ACTIONS[o.status].map((a) => (
-                  <form key={a.status} action={setOrderStatus}>
-                    <input type="hidden" name="id" value={o.id} />
-                    <input type="hidden" name="status" value={a.status} />
-                    <button
-                      type="submit"
-                      className={
-                        a.primary
-                          ? "rounded-full bg-[#0F7A40] px-4 py-1.5 text-sm font-semibold text-white"
-                          : BTN
-                      }
-                    >
-                      {a.label}
-                    </button>
-                  </form>
-                ))}
+                {ACTIONS[o.status].map((a) => {
+                  const blocked =
+                    a.status === "CONFIRMED" &&
+                    !!o.paymentMethod &&
+                    o.paymentMethod !== "CASH" &&
+                    o.paymentStatus !== "PAID";
+                  return (
+                    <form key={a.status} action={setOrderStatus}>
+                      <input type="hidden" name="id" value={o.id} />
+                      <input type="hidden" name="status" value={a.status} />
+                      <button
+                        type="submit"
+                        disabled={blocked}
+                        title={blocked ? "Validez d'abord le paiement" : undefined}
+                        className={
+                          a.primary
+                            ? "rounded-full bg-[#0F7A40] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+                            : BTN
+                        }
+                      >
+                        {blocked ? "Confirmer (paiement à valider)" : a.label}
+                      </button>
+                    </form>
+                  );
+                })}
 
                 <a
                   href={`https://wa.me/${toIntlDigits(o.buyerPhone)}`}
