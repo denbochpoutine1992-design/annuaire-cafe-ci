@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Compteurs affichés sur les liens « Commandes » et « Produits »
   const [newOrders, pendingProducts] = await Promise.all([
-    db.order.count({ where: { status: "NEW" } }),
+    db.order.count({ where: { OR: [{ status: "NEW" }, { paymentStatus: "TO_VERIFY" }] } }),
     db.product.count({ where: { status: "PENDING" } }),
   ]);
 
