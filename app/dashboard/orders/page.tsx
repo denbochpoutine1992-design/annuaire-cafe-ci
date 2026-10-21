@@ -12,16 +12,14 @@ export const metadata = {
 };
 
 const TABS = [
-  { value: "NEW", label: "Reçues" },
-  { value: "CONFIRMED", label: "En préparation" },
+  { value: "CONFIRMED", label: "À préparer" },
   { value: "DELIVERED", label: "Livrées" },
-  { value: "CANCELLED", label: "Annulées" },
   { value: "ALL", label: "Toutes" },
 ] as const;
 
 const LABEL: Record<string, string> = {
   NEW: "Reçue",
-  CONFIRMED: "En préparation",
+  CONFIRMED: "À préparer",
   DELIVERED: "Livrée",
   CANCELLED: "Annulée",
 };
@@ -47,9 +45,14 @@ export default async function MySales({
 
   const current = TABS.some((t) => t.value === searchParams.status)
     ? (searchParams.status as (typeof TABS)[number]["value"])
-    : "NEW";
+    : "CONFIRMED";
 
-  const mine = { vendor: { ownerId: userId } };
+  // Une vente n'apparaît chez le vendeur qu'une fois la commande confirmée par la plateforme
+  // (donc payée, pour Mobile Money). Les commandes en attente ou annulées restent invisibles.
+  const mine = {
+    vendor: { ownerId: userId },
+    status: { in: ["CONFIRMED", "DELIVERED"] as ("CONFIRMED" | "DELIVERED")[] },
+  };
 
   const [orders, grouped] = await Promise.all([
     db.order.findMany({
@@ -89,8 +92,8 @@ export default async function MySales({
 
         <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">Mes ventes</h1>
         <p className="mt-1 text-sm text-[#6B5F55]">
-          Les produits de vos commerces vendus sur Annuaire Café CI. La plateforme prépare et livre
-          les commandes.
+          Les produits de vos commerces vendus sur Annuaire Café CI. Une vente apparaît ici une fois la
+          commande confirmée et payée. La plateforme prépare et livre les colis.
         </p>
 
         <nav aria-label="Filtrer par statut" className="mt-5 flex flex-wrap gap-2">
