@@ -143,3 +143,18 @@ model OrderItem {
   unitPriceFcfa Int
   quantity      Int
 }
+
+// Tarif de livraison par ville (en FCFA). Une ville sans tarif utilise le tarif par défaut.
+model ShippingRate {
+  id        String   @id @default(cuid())
+  city      String   @unique
+  feeFcfa   Int
+  updatedAt DateTime @updatedAt
+}
+
+// Réglages modifiables depuis l'administration (livraison par défaut, seuil de livraison offerte…).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
