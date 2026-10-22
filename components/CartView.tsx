@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { useCart, type VendorGroup } from "@/components/CartProvider";
+import { useCart } from "@/components/CartProvider";
 import CheckoutForm, { type OrderDone } from "@/components/CheckoutForm";
 import PaymentCard from "@/components/PaymentCard";
 import type { PaymentMethod } from "@/lib/payment";
@@ -20,18 +20,17 @@ function plural(n: number, word: string) {
 }
 
 export default function CartView({ methods }: { methods?: PaymentMethod[] }) {
-  const { ready, groups, total, count, updateQuantity, removeFromCart, clearCart } =
+  const { ready, items, groups, total, count, updateQuantity, removeFromCart, clearCart } =
     useCart();
 
-  // Vendeur dont le formulaire de commande est ouvert
-  const [openVendor, setOpenVendor] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   // Dernière commande enregistrée (affichée en haut de la page)
   const [done, setDone] = useState<OrderDone | null>(null);
 
-  function handleDone(group: VendorGroup, info: OrderDone) {
-    // La commande est enregistrée : on retire du panier les produits de ce vendeur
-    group.items.forEach((item) => removeFromCart(item.productId, item.vendorId));
-    setOpenVendor(null);
+  function handleDone(info: OrderDone) {
+    // Une seule commande pour tout le panier : on le vide
+    clearCart();
+    setCheckoutOpen(false);
     setDone(info);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -60,9 +59,9 @@ export default function CartView({ methods }: { methods?: PaymentMethod[] }) {
             ✓ Commande {done.reference} enregistrée
           </p>
           <p className="mt-2 text-[#2F4A3A]">
-            Total : <strong>{formatFcfa(done.totalFcfa)}</strong>. Merci ! Annuaire Café CI vous
-            appelle bientôt pour confirmer votre commande et organiser la livraison. Le paiement se
-            fait à la livraison.
+            Total : <strong>{formatFcfa(done.totalFcfa)}</strong> (livraison comprise). Merci !
+            Annuaire Café CI vous appelle bientôt pour confirmer votre commande et organiser la
+            livraison. Le paiement se fait à la livraison.
           </p>
           <p className="mt-3 text-sm text-[#2F4A3A]">
             Gardez votre référence : <strong>{done.reference}</strong>.
@@ -200,54 +199,51 @@ export default function CartView({ methods }: { methods?: PaymentMethod[] }) {
                     </li>
                   ))}
                 </ul>
-
-                {openVendor === group.vendorId ? (
-                  <CheckoutForm
-                    group={group}
-                    methods={methods}
-                    onDone={(info) => handleDone(group, info)}
-                    onCancel={() => setOpenVendor(null)}
-                  />
-                ) : (
-                  <div className="border-t border-[#EFE8DC] p-5">
-                    <button
-                      type="button"
-                      onClick={() => setOpenVendor(group.vendorId)}
-                      className={`w-full rounded-full bg-[#D8B46A] px-6 py-3.5 font-semibold text-black transition hover:bg-[#C9A052] ${FOCUS}`}
-                    >
-                      Commander chez {group.vendorName || "ce vendeur"}
-                    </button>
-                  </div>
-                )}
               </section>
             ))}
           </div>
 
           <div className="mt-8 rounded-2xl border border-[#E5DDD2] bg-white p-5">
             <div className="flex items-center justify-between text-lg">
-              <span>Total</span>
+              <span>Produits</span>
               <strong>{formatFcfa(total)}</strong>
             </div>
 
-            {groups.length > 1 && (
-              <p className="mt-3 text-sm text-[#6B5F55]">
-                Votre panier contient des produits de {groups.length} vendeurs : une commande
-                séparée est passée avec chacun, et chaque vendeur prépare et livre la sienne.
-              </p>
-            )}
             <p className="mt-3 text-sm text-[#6B5F55]">
-              Les prix sont vérifiés au moment de la commande.
+              Une seule livraison pour tout votre panier, même avec plusieurs vendeurs : vous
+              recevez un colis unique. Les frais dépendent de votre ville et s’affichent à la
+              commande.
             </p>
+
+            {checkoutOpen ? (
+              <div className="mt-5 border-t border-[#EFE8DC] pt-5">
+                <CheckoutForm
+                  items={items}
+                  subtotal={total}
+                  methods={methods}
+                  onDone={handleDone}
+                  onCancel={() => setCheckoutOpen(false)}
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCheckoutOpen(true)}
+                className={`mt-5 w-full rounded-full bg-[#D8B46A] px-6 py-3.5 font-semibold text-black transition hover:bg-[#C9A052] ${FOCUS}`}
+              >
+                Commander
+              </button>
+            )}
 
             <button
               type="button"
               onClick={() => {
                 if (window.confirm("Vider tout le panier ?")) {
                   clearCart();
-                  setOpenVendor(null);
+                  setCheckoutOpen(false);
                 }
               }}
-              className={`mt-5 rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
+              className={`mt-4 rounded-full border border-[#D9CFC1] px-4 py-2 text-sm font-medium transition hover:bg-[#F4EFE7] ${FOCUS}`}
             >
               Vider le panier
             </button>
