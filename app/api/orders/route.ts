@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { parseFcfa } from "@/lib/format";
 import { isValidPhone } from "@/lib/phone";
 import { getAvailableMethods, getMobileInstructions } from "@/lib/payment";
+import { computeShippingFee } from "@/lib/shipping";
 
 const MAX_LINES = 30;
 const MAX_QTY = 99;
@@ -24,6 +25,10 @@ function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
 
+/**
+ * Une commande = tout le panier, avec les produits de un ou plusieurs vendeurs
+ * et UNE seule livraison. Les prix et les frais sont calculés ici, jamais par le navigateur.
+ */
 export async function POST(req: NextRequest) {
   try {
     let body: Record<string, unknown>;
@@ -33,7 +38,6 @@ export async function POST(req: NextRequest) {
       return bad("Requête invalide.");
     }
 
-    const vendorId = text(body.vendorId, 80);
     const buyerName = text(body.buyerName, 80);
     const buyerPhone = text(body.buyerPhone, 30);
     const deliveryCity = text(body.deliveryCity, 80);
@@ -46,7 +50,6 @@ export async function POST(req: NextRequest) {
       return bad("Ce moyen de paiement n'est pas disponible.");
     }
 
-    if (!vendorId) return bad("Vendeur manquant.");
     if (buyerName.length < 2) return bad("Indiquez votre nom.");
     if (!isValidPhone(buyerPhone)) return bad("Indiquez un numéro de téléphone valide.");
     if (!deliveryCity) return bad("Choisissez votre ville.");
@@ -65,23 +68,20 @@ export async function POST(req: NextRequest) {
       quantities.set(productId, Math.min((quantities.get(productId) ?? 0) + qty, MAX_QTY));
     }
 
-    // Le vendeur doit exister et être approuvé
-    const vendor = await db.vendor.findUnique({
-      where: { id: vendorId },
-      select: { id: true, name: true, status: true },
-    });
-    if (!vendor || vendor.status !== "APPROVED") {
-      return bad("Ce vendeur n'est plus disponible.", 404);
-    }
-
-    // Les produits doivent appartenir à CE vendeur ; les prix viennent de la base
+    // Les produits viennent de la base : approuvés, et leur vendeur doit être approuvé aussi
     const products = await db.product.findMany({
       where: {
         id: { in: Array.from(quantities.keys()) },
-        vendorId: vendor.id,
-        status: "APPROVED", // un produit non validé ne peut pas être commandé
+        status: "APPROVED",
+        vendor: { status: "APPROVED" },
       },
-      select: { id: true, name: true, price: true },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        vendorId: true,
+        vendor: { select: { name: true } },
+      },
     });
     if (products.length !== quantities.size) {
       return bad("Un produit de votre panier n'est plus disponible. Actualisez votre panier.");
@@ -89,16 +89,26 @@ export async function POST(req: NextRequest) {
 
     const lines = products.map((p) => ({
       productId: p.id,
+      vendorId: p.vendorId,
+      vendorName: p.vendor.name,
       nameSnapshot: p.name,
       unitPriceFcfa: parseFcfa(p.price),
       quantity: quantities.get(p.id) as number,
     }));
 
     if (lines.some((l) => l.unitPriceFcfa <= 0)) {
-      return bad("Un produit n'a pas de prix : contactez directement le vendeur.");
+      return bad("Un produit n'a pas de prix : retirez-le de votre panier.");
     }
 
-    const totalFcfa = lines.reduce((sum, l) => sum + l.unitPriceFcfa * l.quantity, 0);
+    // Une seule livraison, quel que soit le nombre de vendeurs
+    const subtotalFcfa = lines.reduce((sum, l) => sum + l.unitPriceFcfa * l.quantity, 0);
+    const shippingFeeFcfa = await computeShippingFee(deliveryCity, subtotalFcfa);
+    const totalFcfa = subtotalFcfa + shippingFeeFcfa;
+
+    // Un seul vendeur : on le mémorise (anciens écrans). Plusieurs vendeurs : champs vides.
+    const vendorIds = new Set(lines.map((l) => l.vendorId));
+    const single = vendorIds.size === 1 ? lines[0] : null;
+
     const buyerId = await getSessionUserId();
 
     // La référence est unique en base : on réessaie en cas de collision (très rare)
@@ -110,14 +120,16 @@ export async function POST(req: NextRequest) {
         await db.order.create({
           data: {
             reference,
-            vendorId: vendor.id,
-            vendorName: vendor.name,
+            vendorId: single ? single.vendorId : null,
+            vendorName: single ? single.vendorName : null,
             buyerId,
             buyerName,
             buyerPhone,
             deliveryCity,
             deliveryAddress,
             note: note || null,
+            subtotalFcfa,
+            shippingFeeFcfa,
             totalFcfa,
             paymentMethod,
             items: { create: lines },
@@ -130,11 +142,14 @@ export async function POST(req: NextRequest) {
     }
     if (!created) return bad("Impossible d'enregistrer la commande. Réessayez.", 500);
 
-    // Le client n'est jamais mis en contact avec le vendeur : c'est la plateforme qui le recontacte.
+    // Le client n'est jamais mis en contact avec un vendeur : c'est la plateforme qui le recontacte.
     // Pour Mobile Money, on renvoie le numéro et le titulaire auxquels il doit envoyer l'argent.
     const payment = paymentMethod === "CASH" ? null : getMobileInstructions(paymentMethod);
 
-    return NextResponse.json({ reference, totalFcfa, payment }, { status: 201 });
+    return NextResponse.json(
+      { reference, subtotalFcfa, shippingFeeFcfa, totalFcfa, payment },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Erreur commande :", error);
     return bad("Une erreur est survenue. Réessayez dans un instant.", 500);
