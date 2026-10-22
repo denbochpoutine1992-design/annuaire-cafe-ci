@@ -104,14 +104,15 @@ model Review {
   @@index([vendorId])
 }
 
-// Une commande = un vendeur. Les noms et prix sont copiés au moment de l'achat
+// Une commande peut contenir les produits de plusieurs vendeurs, avec une seule livraison.
+// Les noms et prix sont copiés au moment de l'achat
 // (le catalogue peut changer ensuite) et l'historique est conservé si le vendeur est supprimé.
 model Order {
   id              String      @id @default(cuid())
   reference       String      @unique        // ex. ACI-7KQ2MX, communiquée au client
   vendorId        String?
   vendor          Vendor?     @relation(fields: [vendorId], references: [id], onDelete: SetNull)
-  vendorName      String
+  vendorName      String?                    // vide si la commande contient plusieurs vendeurs
   buyerId         String?                    // vide si le client n'a pas de compte
   buyerName       String
   buyerPhone      String
@@ -119,7 +120,9 @@ model Order {
   deliveryAddress String
   note            String?
   status          OrderStatus @default(NEW)
-  totalFcfa       Int
+  subtotalFcfa    Int         @default(0)    // produits seulement
+  shippingFeeFcfa Int         @default(0)    // UNE seule livraison, quel que soit le nombre de vendeurs
+  totalFcfa       Int                        // produits + livraison
   paymentMethod   String?                    // ORANGE, MTN, MOOV ou WAVE
   paymentStatus   PaymentStatus @default(UNPAID)
   paymentRef      String?                    // identifiant de transaction saisi par le client
@@ -139,9 +142,13 @@ model OrderItem {
   orderId       String
   order         Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId     String?
+  vendorId      String?                    // vendeur à qui appartient ce produit
+  vendorName    String?
   nameSnapshot  String
   unitPriceFcfa Int
   quantity      Int
+
+  @@index([vendorId])
 }
 
 // Tarif de livraison par ville (en FCFA). Une ville sans tarif utilise le tarif par défaut.
