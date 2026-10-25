@@ -65,6 +65,44 @@ const ACTIONS: Record<string, { status: string; label: string; primary?: boolean
   CANCELLED: [{ status: "NEW", label: "Rouvrir" }],
 };
 
+type ItemRow = {
+  id: string;
+  vendorId: string | null;
+  vendorName: string | null;
+  nameSnapshot: string;
+  unitPriceFcfa: number;
+  quantity: number;
+};
+
+type OrderRow = { vendorId: string | null; vendorName: string | null; items: ItemRow[] };
+
+type VendorLite = { id: string; name: string; phone: string };
+
+/** Regroupe les produits d'une commande par vendeur (ce qu'il faut préparer pour chacun). */
+function groupByVendor(order: OrderRow, vendorById: Map<string, VendorLite>) {
+  const groups = new Map<string, { id: string | null; name: string; items: ItemRow[] }>();
+
+  for (const item of order.items) {
+    // Anciennes commandes : le vendeur est sur la commande, pas sur les lignes
+    const id = item.vendorId ?? order.vendorId ?? null;
+    const key = id ?? "inconnu";
+
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        id,
+        name:
+          item.vendorName ?? order.vendorName ?? (id ? vendorById.get(id)?.name : undefined) ?? "Vendeur",
+        items: [],
+      };
+      groups.set(key, group);
+    }
+    group.items.push(item);
+  }
+
+  return Array.from(groups.values());
+}
+
 export default async function AdminOrders({
   searchParams,
 }: {
@@ -86,14 +124,23 @@ export default async function AdminOrders({
           : { status: current },
       orderBy: { createdAt: "desc" },
       take: 100,
-      include: {
-        items: true,
-        vendor: { select: { id: true, phone: true } },
-      },
+      include: { items: true },
     }),
     db.order.groupBy({ by: ["status"], _count: { _all: true } }),
     db.order.count({ where: { paymentStatus: "TO_VERIFY" } }),
   ]);
+
+  // Les vendeurs concernés (pour pouvoir les contacter et préparer les colis)
+  const vendorIds = new Set<string>();
+  for (const o of orders) {
+    if (o.vendorId) vendorIds.add(o.vendorId);
+    for (const i of o.items) if (i.vendorId) vendorIds.add(i.vendorId);
+  }
+  const vendors = await db.vendor.findMany({
+    where: { id: { in: Array.from(vendorIds) } },
+    select: { id: true, name: true, phone: true },
+  });
+  const vendorById = new Map(vendors.map((v) => [v.id, v]));
 
   const counts: Record<string, number> = {};
   let totalCount = 0;
@@ -140,14 +187,8 @@ export default async function AdminOrders({
                       timeStyle: "short",
                       timeZone: "Africa/Abidjan",
                     })}{" "}
-                    · chez{" "}
-                    {o.vendor ? (
-                      <Link href={`/vendors/${o.vendor.id}`} className="underline">
-                        {o.vendorName}
-                      </Link>
-                    ) : (
-                      o.vendorName
-                    )}
+                    · {groupByVendor(o, vendorById).length} vendeur
+                    {groupByVendor(o, vendorById).length > 1 ? "s" : ""}
                   </p>
                 </div>
 
@@ -158,22 +199,75 @@ export default async function AdminOrders({
                 </span>
               </div>
 
-              <ul className="mt-4 divide-y divide-[#EFE8DC] rounded-xl bg-[#FBF8F2] px-4">
-                {o.items.map((i) => (
-                  <li key={i.id} className="flex justify-between gap-4 py-2 text-sm">
-                    <span>
-                      {i.quantity} × {i.nameSnapshot}
-                    </span>
-                    <span className="shrink-0 font-medium">
-                      {formatFcfa(i.unitPriceFcfa * i.quantity)}
-                    </span>
-                  </li>
-                ))}
-                <li className="flex justify-between gap-4 py-2 text-sm font-semibold">
-                  <span>Total</span>
-                  <span>{formatFcfa(o.totalFcfa)}</span>
-                </li>
-              </ul>
+              <div className="mt-4 space-y-3">
+                {groupByVendor(o, vendorById).map((g) => {
+                  const vendor = g.id ? vendorById.get(g.id) : undefined;
+                  const groupTotal = g.items.reduce((sum, i) => sum + i.unitPriceFcfa * i.quantity, 0);
+                  return (
+                    <div key={g.id ?? "inconnu"} className="rounded-xl bg-[#FBF8F2] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">
+                          À préparer chez{" "}
+                          {g.id ? (
+                            <Link href={`/vendors/${g.id}`} className="underline">
+                              {g.name}
+                            </Link>
+                          ) : (
+                            g.name
+                          )}
+                        </p>
+                        {vendor?.phone && (
+                          <a
+                            href={`https://wa.me/${toIntlDigits(vendor.phone)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline"
+                          >
+                            Écrire au vendeur
+                          </a>
+                        )}
+                      </div>
+
+                      <ul className="mt-2 divide-y divide-[#EFE8DC]">
+                        {g.items.map((i) => (
+                          <li key={i.id} className="flex justify-between gap-4 py-1.5 text-sm">
+                            <span>
+                              {i.quantity} × {i.nameSnapshot}
+                            </span>
+                            <span className="shrink-0 font-medium">
+                              {formatFcfa(i.unitPriceFcfa * i.quantity)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-right text-xs text-[#6B5F55]">
+                        Total vendeur : {formatFcfa(groupTotal)}
+                      </p>
+                    </div>
+                  );
+                })}
+
+                <div className="rounded-xl bg-[#FBF8F2] px-4 py-3 text-sm">
+                  {o.subtotalFcfa > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Produits</span>
+                        <span>{formatFcfa(o.subtotalFcfa)}</span>
+                      </div>
+                      <div className="mt-1 flex justify-between">
+                        <span>Livraison (un seul colis)</span>
+                        <span>
+                          {o.shippingFeeFcfa > 0 ? formatFcfa(o.shippingFeeFcfa) : "Gratuite"}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <div className="mt-1 flex justify-between font-semibold">
+                    <span>Total à encaisser</span>
+                    <span>{formatFcfa(o.totalFcfa)}</span>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-4 text-sm text-[#4A3F36]">
                 <p>
@@ -271,17 +365,6 @@ export default async function AdminOrders({
                 >
                   Écrire au client
                 </a>
-
-                {o.vendor?.phone && (
-                  <a
-                    href={`https://wa.me/${toIntlDigits(o.vendor.phone)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={BTN}
-                  >
-                    Écrire au vendeur
-                  </a>
-                )}
               </div>
             </li>
           ))}
