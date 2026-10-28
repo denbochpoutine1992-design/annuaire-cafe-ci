@@ -3,7 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { formatFcfa, parseFcfa } from "@/lib/format";
-import { setProductPrice, setProductStatus } from "./actions";
+import { setProductPrice, setProductStatus, setProductStock } from "./actions";
 
 const TABS = [
   { value: "PENDING", label: "À valider" },
@@ -131,6 +131,17 @@ export default async function AdminProducts({
                       {amount > 0 ? formatFcfa(amount) : "Prix non renseigné"}
                     </p>
 
+                    <p className="mt-1 text-sm text-[#6B5F55]">
+                      Stock :{" "}
+                      {p.stock === null ? (
+                        "non suivi"
+                      ) : p.stock <= 0 ? (
+                        <strong className="text-red-800">épuisé</strong>
+                      ) : (
+                        <strong>{p.stock}</strong>
+                      )}
+                    </p>
+
                     {p.description && (
                       <p className="mt-2 line-clamp-3 text-sm text-[#4A3F36]">{p.description}</p>
                     )}
@@ -176,6 +187,24 @@ export default async function AdminProducts({
                     />
                     <button type="submit" className={BTN}>
                       Enregistrer le prix
+                    </button>
+                  </form>
+
+                  <form action={setProductStock} className="flex items-center gap-2">
+                    <input type="hidden" name="id" value={p.id} />
+                    <label htmlFor={`stock-${p.id}`} className="sr-only">
+                      Quantité en stock
+                    </label>
+                    <input
+                      id={`stock-${p.id}`}
+                      name="stock"
+                      inputMode="numeric"
+                      defaultValue={p.stock === null ? "" : String(p.stock)}
+                      placeholder="Stock"
+                      className="h-9 w-24 rounded-full border border-[#D9CFC1] px-3 text-sm"
+                    />
+                    <button type="submit" className={BTN}>
+                      Enregistrer le stock
                     </button>
                   </form>
                 </div>
