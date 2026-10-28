@@ -36,3 +36,18 @@ export async function setProductPrice(formData: FormData) {
   await db.product.update({ where: { id }, data: { price: `${amount} FCFA` } });
   revalidatePath("/admin", "layout");
 }
+
+/**
+ * Stock reçu dans l'entrepôt. Une case vide = stock non suivi (le produit n'est jamais « épuisé »).
+ */
+export async function setProductStock(formData: FormData) {
+  await requireAdmin();
+  const id = getId(formData);
+  const raw = formData.get("stock");
+  const text = typeof raw === "string" ? raw.trim() : "";
+
+  const stock = text === "" ? null : Math.max(0, parseInt(text.replace(/\D/g, ""), 10) || 0);
+
+  await db.product.update({ where: { id }, data: { stock } });
+  revalidatePath("/admin", "layout");
+}
