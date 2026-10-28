@@ -21,6 +21,13 @@ function newReference() {
   return `ACI-${s}`;
 }
 
+/** Levée quand le stock d'un produit ne suffit plus au moment d'enregistrer la commande. */
+class StockError extends Error {
+  constructor(public productName: string) {
+    super("Stock insuffisant");
+  }
+}
+
 function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
@@ -79,6 +86,7 @@ export async function POST(req: NextRequest) {
         id: true,
         name: true,
         price: true,
+        stock: true,
         vendorId: true,
         vendor: { select: { name: true } },
       },
@@ -86,6 +94,19 @@ export async function POST(req: NextRequest) {
     if (products.length !== quantities.size) {
       return bad("Un produit de votre panier n'est plus disponible. Actualisez votre panier.");
     }
+
+    // Stock : un produit « suivi » (stock renseigné) ne peut pas être commandé au-delà de ce qui reste
+    for (const p of products) {
+      const qty = quantities.get(p.id) as number;
+      if (p.stock !== null && p.stock < qty) {
+        return bad(
+          p.stock <= 0
+            ? `« ${p.name} » est épuisé. Retirez-le de votre panier.`
+            : `Il ne reste que ${p.stock} « ${p.name} ». Réduisez la quantité dans votre panier.`
+        );
+      }
+    }
+    const tracked = new Set(products.filter((p) => p.stock !== null).map((p) => p.id));
 
     const lines = products.map((p) => ({
       productId: p.id,
@@ -117,26 +138,42 @@ export async function POST(req: NextRequest) {
     for (let attempt = 0; attempt < 5 && !created; attempt++) {
       reference = newReference();
       try {
-        await db.order.create({
-          data: {
-            reference,
-            vendorId: single ? single.vendorId : null,
-            vendorName: single ? single.vendorName : null,
-            buyerId,
-            buyerName,
-            buyerPhone,
-            deliveryCity,
-            deliveryAddress,
-            note: note || null,
-            subtotalFcfa,
-            shippingFeeFcfa,
-            totalFcfa,
-            paymentMethod,
-            items: { create: lines },
-          },
+        await db.$transaction(async (tx) => {
+          // Décompte du stock : n'aboutit que s'il en reste assez (deux clients ne peuvent pas
+          // acheter la même dernière unité), sinon toute la commande est annulée.
+          for (const l of lines) {
+            if (!tracked.has(l.productId)) continue;
+            const res = await tx.product.updateMany({
+              where: { id: l.productId, stock: { gte: l.quantity } },
+              data: { stock: { decrement: l.quantity } },
+            });
+            if (res.count !== 1) throw new StockError(l.nameSnapshot);
+          }
+
+          await tx.order.create({
+            data: {
+              reference,
+              vendorId: single ? single.vendorId : null,
+              vendorName: single ? single.vendorName : null,
+              buyerId,
+              buyerName,
+              buyerPhone,
+              deliveryCity,
+              deliveryAddress,
+              note: note || null,
+              subtotalFcfa,
+              shippingFeeFcfa,
+              totalFcfa,
+              paymentMethod,
+              items: { create: lines },
+            },
+          });
         });
         created = true;
       } catch (e) {
+        if (e instanceof StockError) {
+          return bad(`Il ne reste plus assez de « ${e.productName} ». Actualisez votre panier.`);
+        }
         if ((e as { code?: string }).code !== "P2002") throw e;
       }
     }
