@@ -77,6 +77,7 @@ model Product {
   price       String?
   photoUrl    String?
   status      ProductStatus @default(APPROVED)
+  stock       Int?                          // vide = stock non suivi (jamais « épuisé »)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
