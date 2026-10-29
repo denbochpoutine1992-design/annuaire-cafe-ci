@@ -25,21 +25,63 @@ export async function setOrderStatus(formData: FormData) {
     throw new Error("Statut invalide.");
   }
 
+  const order = await db.order.findUnique({
+    where: { id },
+    select: {
+      status: true,
+      paymentMethod: true,
+      paymentStatus: true,
+      items: { select: { productId: true, quantity: true } },
+    },
+  });
+  if (!order) throw new Error("Commande introuvable.");
+
   // Une commande payée par Mobile Money ne se confirme qu'après validation du paiement.
   if (status === "CONFIRMED") {
-    const order = await db.order.findUnique({
-      where: { id },
-      select: { paymentMethod: true, paymentStatus: true },
-    });
-    if (!order) throw new Error("Commande introuvable.");
-
     const needsPayment = !!order.paymentMethod && order.paymentMethod !== "CASH";
     if (needsPayment && order.paymentStatus !== "PAID") {
       throw new Error("Validez d'abord le paiement de cette commande.");
     }
   }
 
-  await db.order.update({ where: { id }, data: { status } });
+  const cancelling = status === "CANCELLED" && order.status !== "CANCELLED";
+  const reopening = order.status === "CANCELLED" && status !== "CANCELLED";
+  const productIds = order.items.map((i) => i.productId).filter((p): p is string => !!p);
+
+  await db.$transaction(async (tx) => {
+    // Annulation : les produits dont le stock est suivi retournent dans le stock.
+    if (cancelling) {
+      for (const item of order.items) {
+        if (!item.productId) continue;
+        await tx.product.updateMany({
+          where: { id: item.productId, stock: { not: null } },
+          data: { stock: { increment: item.quantity } },
+        });
+      }
+    }
+
+    // Réouverture d'une commande annulée : on reprend le stock, s'il en reste assez.
+    if (reopening && productIds.length > 0) {
+      const products = await tx.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, stock: true },
+      });
+      const tracked = new Set(products.filter((p) => p.stock !== null).map((p) => p.id));
+
+      for (const item of order.items) {
+        if (!item.productId || !tracked.has(item.productId)) continue;
+        const res = await tx.product.updateMany({
+          where: { id: item.productId, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } },
+        });
+        if (res.count !== 1) {
+          throw new Error("Stock insuffisant pour rouvrir cette commande.");
+        }
+      }
+    }
+
+    await tx.order.update({ where: { id }, data: { status } });
+  });
 
   // Met à jour la liste, le tableau de bord et les compteurs de la barre d'administration
   revalidatePath("/admin", "layout");
