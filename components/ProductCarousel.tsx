@@ -15,6 +15,7 @@ type Product = {
   description?: string | null;
   price?: string | null;
   photoUrl?: string | null;
+  stock?: number | null;
 };
 
 type Vendor = { id: string; name: string };
@@ -41,6 +42,11 @@ function ProductCard({
   // Quantité déjà présente dans le panier pour ce produit
   const quantity =
     items.find((i) => i.productId === product.id && i.vendorId === vendor.id)?.quantity ?? 0;
+
+  // Stock suivi : « épuisé » à 0, et on ne peut pas mettre plus que ce qu'il reste dans le panier
+  const stock = typeof product.stock === "number" ? product.stock : null;
+  const soldOut = stock !== null && stock <= 0;
+  const canAddMore = stock === null || quantity < stock;
 
   const description = product.description ?? "";
   const isLong = description.length > 70;
@@ -115,8 +121,20 @@ function ProductCard({
           {price > 0 ? formatFcfa(price) : "Prix non renseigné"}
         </p>
 
-        {/* Sélecteur de quantité : on n'ajoute rien sans prix valide */}
-        {price > 0 && (
+        {stock !== null && stock > 0 && stock <= 5 && (
+          <p className="mt-1 text-xs font-semibold text-[#9A3412]">Plus que {stock} en stock</p>
+        )}
+
+        {price > 0 && soldOut && (
+          <div className="mt-auto pt-3">
+            <p className="rounded-full bg-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-600">
+              Épuisé
+            </p>
+          </div>
+        )}
+
+        {/* Sélecteur de quantité : on n'ajoute rien sans prix valide ni sans stock */}
+        {price > 0 && !soldOut && (
           <div className="mt-auto pt-3">
             <div className="flex items-center justify-between rounded-full border border-[#CFC4B3] bg-[#FBF8F2] p-1">
               <button
@@ -140,8 +158,9 @@ function ProductCard({
               <button
                 type="button"
                 onClick={add}
+                disabled={!canAddMore}
                 aria-label={`Ajouter ${product.name} au panier`}
-                className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#D8B46A] text-2xl font-medium text-black shadow transition hover:bg-[#C9A052] active:scale-95 ${FOCUS}`}
+                className={`flex h-11 w-11 items-center justify-center rounded-full bg-[#D8B46A] text-2xl font-medium text-black shadow transition hover:bg-[#C9A052] active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${FOCUS}`}
               >
                 +
               </button>
