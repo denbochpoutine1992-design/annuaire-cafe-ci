@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { CATEGORIES } from "@/lib/constants";
 import { toPublicVendor } from "@/lib/public-vendor";
+import { CONTACT_BLOCKED_MESSAGE, containsContactInfo } from "@/lib/contact-filter";
 
 function text(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -101,6 +102,10 @@ export async function POST(req: NextRequest) {
 
   if (!CATEGORIES.some((c: { id: string }) => c.id === category)) {
     return NextResponse.json({ error: "Catégorie invalide." }, { status: 400 });
+  }
+
+  if (containsContactInfo(name, neighborhood, description, priceInfo)) {
+    return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 400 });
   }
 
   const phoneDigits = phone.replace(/\D/g, "");
