@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { isAdminUser } from "@/lib/is-admin";
 import { toPublicVendor } from "@/lib/public-vendor";
+import { CONTACT_BLOCKED_MESSAGE, containsContactInfo } from "@/lib/contact-filter";
 import { CATEGORIES } from "@/lib/constants";
 
 function text(value: unknown, max: number) {
@@ -107,6 +108,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if ("priceInfo" in body) data.priceInfo = text(body.priceInfo, 300) || null;
   if ("latitude" in body) data.latitude = coord(body.latitude, -90, 90);
   if ("longitude" in body) data.longitude = coord(body.longitude, -180, 180);
+
+  if (containsContactInfo(data.name, data.neighborhood, data.description, data.priceInfo)) {
+    return bad(CONTACT_BLOCKED_MESSAGE);
+  }
 
   const updated = await db.vendor.update({ where: { id: params.id }, data });
   return NextResponse.json(updated);
