@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { isAdminUser } from "@/lib/is-admin";
 import { parseFcfa } from "@/lib/format";
+import { CONTACT_BLOCKED_MESSAGE, containsContactInfo } from "@/lib/contact-filter";
 
 const MAX_PRODUCTS = 200;
 
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const photoUrl = text(body.photoUrl, 500);
 
   if (!name) return bad("Le nom de l'article est requis.");
+  if (containsContactInfo(name, description)) return bad(CONTACT_BLOCKED_MESSAGE);
 
   // Le panier calcule avec ce prix : il doit contenir des chiffres (ex : « 2000 FCFA »)
   if (price && parseFcfa(price) <= 0) {
