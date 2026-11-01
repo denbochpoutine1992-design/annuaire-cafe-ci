@@ -25,6 +25,13 @@ enum PaymentStatus {
   PAID
 }
 
+enum EarningStatus {
+  PENDING
+  AVAILABLE
+  PAID
+  CANCELLED
+}
+
 enum OrderStatus {
   NEW
   CONFIRMED
@@ -62,6 +69,9 @@ model Vendor {
   reviews       Review[]
   products      Product[]
   orders        Order[]
+  earnings      VendorEarning[]
+  payouts       Payout[]
+  commissionBps Int?                       // commission propre à ce vendeur (1000 = 10 %). Vide = taux général.
 
   @@index([city])
   @@index([category])
@@ -131,6 +141,7 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
+  earnings        VendorEarning[]
 
   @@index([vendorId])
   @@index([status])
@@ -165,4 +176,43 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// Ce que gagne un vendeur sur une commande : ventes, commission de la plateforme, montant net.
+// Les montants sont figés au moment de la commande (le taux peut changer ensuite).
+model VendorEarning {
+  id             String        @id @default(cuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendorId       String?
+  vendor         Vendor?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  vendorName     String
+  grossFcfa      Int                         // ventes du vendeur dans la commande
+  commissionBps  Int                         // taux appliqué (1000 = 10 %)
+  commissionFcfa Int
+  netFcfa        Int                         // ce que la plateforme doit au vendeur
+  status         EarningStatus @default(PENDING)  // PENDING → AVAILABLE (livrée) → PAID (reversée)
+  payoutId       String?
+  payout         Payout?       @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+
+  @@unique([orderId, vendorId])
+  @@index([vendorId, status])
+  @@index([status])
+}
+
+// Un reversement effectué à un vendeur (virement ou Mobile Money).
+model Payout {
+  id         String          @id @default(cuid())
+  vendorId   String?
+  vendor     Vendor?         @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  vendorName String
+  amountFcfa Int
+  method     String                          // ORANGE, MTN, MOOV, WAVE, BANK ou CASH
+  reference  String?                         // identifiant de la transaction de reversement
+  note       String?
+  createdAt  DateTime        @default(now())
+  earnings   VendorEarning[]
+
+  @@index([vendorId])
 }
