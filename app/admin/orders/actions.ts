@@ -81,6 +81,16 @@ export async function setOrderStatus(formData: FormData) {
     }
 
     await tx.order.update({ where: { id }, data: { status } });
+
+    // Les gains des vendeurs suivent la commande : disponibles une fois livrée, annulés si elle
+    // est annulée. Ceux qui ont déjà été reversés ne changent jamais.
+    const earningStatus: "PENDING" | "AVAILABLE" | "CANCELLED" =
+      status === "DELIVERED" ? "AVAILABLE" : status === "CANCELLED" ? "CANCELLED" : "PENDING";
+
+    await tx.vendorEarning.updateMany({
+      where: { orderId: id, payoutId: null },
+      data: { status: earningStatus },
+    });
   });
 
   // Met à jour la liste, le tableau de bord et les compteurs de la barre d'administration
