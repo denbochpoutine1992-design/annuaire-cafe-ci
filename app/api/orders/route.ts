@@ -6,6 +6,7 @@ import { parseFcfa } from "@/lib/format";
 import { isValidPhone } from "@/lib/phone";
 import { getAvailableMethods, getMobileInstructions } from "@/lib/payment";
 import { computeShippingFee } from "@/lib/shipping";
+import { computeEarning, getCommissionRates } from "@/lib/commission";
 
 const MAX_LINES = 30;
 const MAX_QTY = 99;
@@ -126,6 +127,28 @@ export async function POST(req: NextRequest) {
     const shippingFeeFcfa = await computeShippingFee(deliveryCity, subtotalFcfa);
     const totalFcfa = subtotalFcfa + shippingFeeFcfa;
 
+    // Gains de chaque vendeur : ses ventes, ta commission et le montant net qui lui revient.
+    // Les montants sont figés ici : un changement de taux plus tard ne modifie pas cette commande.
+    const grossByVendor = new Map<string, { name: string; gross: number }>();
+    for (const l of lines) {
+      const entry = grossByVendor.get(l.vendorId) ?? { name: l.vendorName, gross: 0 };
+      entry.gross += l.unitPriceFcfa * l.quantity;
+      grossByVendor.set(l.vendorId, entry);
+    }
+    const rates = await getCommissionRates(Array.from(grossByVendor.keys()));
+    const earnings = Array.from(grossByVendor.entries()).map(([vendorId, entry]) => {
+      const commissionBps = rates.get(vendorId) ?? 0;
+      const { commissionFcfa, netFcfa } = computeEarning(entry.gross, commissionBps);
+      return {
+        vendorId,
+        vendorName: entry.name,
+        grossFcfa: entry.gross,
+        commissionBps,
+        commissionFcfa,
+        netFcfa,
+      };
+    });
+
     // Un seul vendeur : on le mémorise (anciens écrans). Plusieurs vendeurs : champs vides.
     const vendorIds = new Set(lines.map((l) => l.vendorId));
     const single = vendorIds.size === 1 ? lines[0] : null;
@@ -150,7 +173,7 @@ export async function POST(req: NextRequest) {
             if (res.count !== 1) throw new StockError(l.nameSnapshot);
           }
 
-          await tx.order.create({
+          const order = await tx.order.create({
             data: {
               reference,
               vendorId: single ? single.vendorId : null,
@@ -167,6 +190,10 @@ export async function POST(req: NextRequest) {
               paymentMethod,
               items: { create: lines },
             },
+          });
+
+          await tx.vendorEarning.createMany({
+            data: earnings.map((e) => ({ ...e, orderId: order.id })),
           });
         });
         created = true;
